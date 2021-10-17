@@ -27,16 +27,17 @@ def inb_diagr(I, N):
     #I interval, N #punten
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
-    
+
     l = np.linspace(I[0], I[1], N+1) # N+1, want dan N intervallen
     phi = np.linspace(0, 2*np.pi, N)
     L, PHI = np.meshgrid(dneg_r(l[1:]), phi) # radius is r(l)
-    
+
     #tile want symmetrisch voor rotaties, onafhankelijk van phi
     Z = np.tile(imb_f_int(l), (N, 1)) #z(l)
 
     X, Y = L*np.cos(PHI), L*np.sin(PHI)
     ax.plot_surface(X, Y, Z, cmap=plt.cm.YlGnBu_r)
+    plt.show()
 
 
 inb_diagr([-10, 10], 1000)
