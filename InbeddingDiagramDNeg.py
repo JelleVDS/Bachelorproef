@@ -7,11 +7,6 @@ import matplotlib.pyplot as plt
 def dneg_r(y, M=0.43/1.42953 , p=1, a=0):
     x = 2*(np.abs(y) - a)/(np.pi*M)
     return p + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
-    
-
-
-# In[4]:
-
 
 def dneg_dr_dl(y, M=0.43/1.42953):
     x = 2*np.abs(y)/(np.pi*M)
@@ -28,10 +23,6 @@ def imb_f_int(l):
          Z.append(np.trapz(imb_f(l[:i]), l[:i]))
     return np.array(Z)
 
-
-# In[5]:
-
-
 def inb_diagr(I, N):
     #I interval, N #punten
     fig = plt.figure()
@@ -46,9 +37,6 @@ def inb_diagr(I, N):
 
     X, Y = L*np.cos(PHI), L*np.sin(PHI)
     ax.plot_surface(X, Y, Z, cmap=plt.cm.YlGnBu_r)
-
-
-# In[6]:
 
 
 inb_diagr([-10, 10], 1000)

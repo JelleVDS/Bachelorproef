@@ -1,13 +1,6 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
 
 import numpy as np
 import cv2
-
-
-# In[2]:
 
 
 def dneg_r(y, M=0.43/1.42953 , p=1, a=0):
@@ -17,23 +10,6 @@ def dneg_r(y, M=0.43/1.42953 , p=1, a=0):
 def dneg_dr_dl(y, M=0.43/1.42953):
     x = 2*np.abs(y)/(np.pi*M)
     return 2/np.pi*np.arctan(x)
-
-def imb_f(l):
-    #hoogte formule inbedding diagram
-    return np.sqrt(1 - dneg_dr_dl(l)**2)
-
-def imb_f_int(l):
-    Z = []
-    # integratie voor stijgende l
-    for i in range(1,len(l)):
-         Z.append(np.trapz(imb_f(l[:i]), l[:i]))
-    return np.array(Z)
-
-
-
-
-# In[40]:
-
 
 def screen_cart(Nz, Ny, L = 1): #Make screen
     My = np.linspace(-L/2, L/2, Ny)
@@ -137,28 +113,12 @@ def Make_Pict_RB(q):
     return cv2.cvtColor(np.array(pict, np.float32), 1)
 
 
-# In[41]:
-
-
 Motion, Photo = Simulate_DNeg(0.01, 1000)
-
-
-# In[45]:
-
 
 cv2.imshow('DNeg', Photo)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 cv2.waitKey(1)
-
-
-# In[ ]:
-
-
-# In[12]:
-
-# In[ ]:
-
 
 
 
