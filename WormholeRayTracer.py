@@ -5,10 +5,13 @@ import cv2
 
 def dneg_r(y, M=0.43/1.42953 , p=1, a=0):
     # input: scalar, output: scalar
+    # define r
     x = 2*(np.abs(y) - a)/(np.pi*M)
     return p + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
 
-def dneg_dr_dl(y, M=0.43/1.42953): #input:scalar , output: scalar
+def dneg_dr_dl(y, M=0.43/1.42953):
+    #input:scalar , output: scalar
+    # define derivative of r to l
     x = 2*np.abs(y)/(np.pi*M)
     return 2/np.pi*np.arctan(x)
 
@@ -39,7 +42,7 @@ def inn_momenta(S_c, S_sph, Cst_f, inn_p_f):
     # input: S_c: 3D matrix as in output of "screen_cart",
     # S_sph: 3D matrix with Sph. coord. on first row and then a 2D matrix
     # within that containing value for that coordinate, Cst_f: function that
-    #calulates constant of motion, inn_p_f: function that calculates inn. momenta ,
+    # calulates constant of motion, inn_p_f: function that calculates inn. momenta ,
     # output: p: 3D matrix with coordinates in impulse space on first row and
     # then a 2D matrix within that with the value for each ray, Cst: list of cst
     # of motion containing the value for each ray in 2D matrix
