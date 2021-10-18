@@ -115,21 +115,23 @@ def p_upd_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
     p_th = p_th - h0p5*b**2*np.cos(theta)/np.sin(theta)**3*rec_r_2
     return [p_l, p_phi, p_th]
 
-def Sympl_ord2(p, q, Cst, h, p_upd, q_upd):
+def Sympl_ord2(p, q, Cst, h):
     # input: p: matrix with coordinates in momentum space on first row,
     # q: matrix with coordinates in configuration space on first row, µ
     # Cst: list of cst of motion containing the value for each ray in 2D matrix,
-    # h: stepsize, p_upd: funtion that updates momenta, q_upd: funtion that updates location,
+    # h: stepsize
     # output: p: list of coordinates in momentum space containing 2D matrix with
     # value for each ray, q: list of coordinates in configuration space containing
     # 2D matrix with value for each ray
-    p = p_upd(p, q, Cst, h,)
-    q = p_upd(p, q, Cst, h,)
-    p = p_upd(p, q, Cst, h,)
+    p = p_upd_DNeg(p, q, Cst, h,)
+    q = q_upd_DNeg(p, q, Cst, h,)
+    p = p_upd_DNeg(p, q, Cst, h,)
     return p, q
 
-def Simulate_DNeg(h, N, Nz = 400, Ny = 400 ):
-    # h stepsize, N amount of steps, Ni pixels
+def Simulate_DNeg(integrator, h, N, Nz = 400, Ny = 400):
+    #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
+    #h: stepsize, N amount of steps, Ni pixels, #output: final value of 3D p, q matrix 
+    #pict: 3D matrix (2D grid containg value in colorspace)
     S_c = screen_cart(Nz, Ny)
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
@@ -137,7 +139,7 @@ def Simulate_DNeg(h, N, Nz = 400, Ny = 400 ):
     q = np.zeros(p.shape) + h*0.1
 
     for i in range(N): #Integration
-        p, q = Sympl_ord2(p, q, Cst, h, p_upd_DNeg, q_upd_DNeg)
+        p, q = integrator(p, q, Cst, h)
     pict = Make_Pict_RB(q)
     return [p, q], pict
 
@@ -157,7 +159,7 @@ def Make_Pict_RB(q):
     return cv2.cvtColor(np.array(pict, np.float32), 1)
 
 
-Motion, Photo = Simulate_DNeg(0.01, 1000)
+Motion, Photo = Simulate_DNeg(Sympl_ord2, 0.01, 1000)
 
 cv2.imshow('DNeg', Photo)
 cv2.waitKey(0)
