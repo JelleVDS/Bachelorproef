@@ -4,27 +4,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def dneg_r(y, M=0.43/1.42953 , p=1, a=0):
+def dneg_r(y, M=0.43/1.42953 , p=1, a=0): #input: scalar, output: scalar
     x = 2*(np.abs(y) - a)/(np.pi*M)
     return p + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
 
-def dneg_dr_dl(y, M=0.43/1.42953):
+def dneg_dr_dl(y, M=0.43/1.42953): #input: scalar, output: scalar
     x = 2*np.abs(y)/(np.pi*M)
     return 2/np.pi*np.arctan(x)
 
-def imb_f(l):
+def imb_f(l): #input: 1D array , output: 1D array
     #hoogte formule inbedding diagram
     return np.sqrt(1 - dneg_dr_dl(l)**2)
 
-def imb_f_int(l):
+def imb_f_int(l): #input: 1D array , output: 1D array
     Z = []
     # integratie voor stijgende l
     for i in range(1,len(l)):
          Z.append(np.trapz(imb_f(l[:i]), l[:i]))
     return np.array(Z)
 
-def inb_diagr(I, N):
-    #I interval, N #punten
+def inb_diagr(I, N): #input: I: interval, N: #points, output: plot
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
 
