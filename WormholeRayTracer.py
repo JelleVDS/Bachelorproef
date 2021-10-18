@@ -4,7 +4,7 @@ import cv2
 
 
 def dneg_r(y, M=0.43/1.42953 , p=1, a=0):
-    #input: scalar, output: scalar
+    # input: scalar, output: scalar
     x = 2*(np.abs(y) - a)/(np.pi*M)
     return p + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
 
@@ -37,11 +37,11 @@ def cart_Sph(v):
 
 def inn_momenta(S_c, S_sph, Cst_f, inn_p_f):
     # input: S_c: 3D matrix as in output of "screen_cart",
-    #S_sph: 3D matrix with Sph. coord. on first row and then a 2D matrix
+    # S_sph: 3D matrix with Sph. coord. on first row and then a 2D matrix
     # within that containing value for that coordinate, Cst_f: function that
     #calulates constant of motion, inn_p_f: function that calculates inn. momenta ,
     # output: p: 3D matrix with coordinates in impulse space on first row and
-    #then a 2D matrix within that with the value for each ray, Cst: list of cst
+    # then a 2D matrix within that with the value for each ray, Cst: list of cst
     # of motion containing the value for each ray in 2D matrix
     r, phi, theta = S_sph
     S_n = S_c/r.reshape(len(S_c) ,len(S_c[0]), 1) # normalize direction light rays
@@ -63,7 +63,7 @@ def Cst_DNeg(p, q):
 def inn_mom_DNeg(S_n, S_sph):
     # input: S_c: 3D matrix as in output of "screen_cart",
     # S_sph: 3D matrix with Sph. coord. on first row and then a 2D matrix
-    #within that containing value for that coordinate, #output: 3D matrix
+    # within that containing value for that coordinate, #output: 3D matrix
     # with coordinates in impulse space on first row and then a 2D matrix
     # within that with the value for each ray
     l, phi, theta = S_sph
@@ -94,11 +94,11 @@ def q_upd_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
     return [l, phi, theta]
 
 def p_upd_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
-    #input: p: matrix with coordinates in momentum space on first row,
-    #q: matrix with coordinates in configuration space on first row,
-    #Cst: list of cst of motion containing the value for each ray in 2D matrix,
-    #h: stepsize, M: scalar, rho: scalar, output: list of coordinates in
-    #configuration space containing 2D matrix with value for each ray
+    # input: p: matrix with coordinates in momentum space on first row,
+    # q: matrix with coordinates in configuration space on first row,
+    # Cst: list of cst of motion containing the value for each ray in 2D matrix,
+    # h: stepsize, M: scalar, rho: scalar, output: list of coordinates in
+    # configuration space containing 2D matrix with value for each ray
     p_l, p_phi, p_th = p
     l, phi, theta = q
     b, B_2 = Cst
@@ -118,7 +118,7 @@ def Sympl_ord2(p, q, Cst, h, p_upd, q_upd):
     # Cst: list of cst of motion containing the value for each ray in 2D matrix,
     # h: stepsize, p_upd: funtion that updates momenta, q_upd: funtion that updates location,
     # output: p: list of coordinates in momentum space containing 2D matrix with
-    #value for each ray, q: list of coordinates in configuration space containing
+    # value for each ray, q: list of coordinates in configuration space containing
     # 2D matrix with value for each ray
     p = p_upd(p, q, Cst, h,)
     q = p_upd(p, q, Cst, h,)
