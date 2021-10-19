@@ -2,11 +2,7 @@
 import numpy as np
 import cv2
 #sasha 123 yeet
-<<<<<<< HEAD
-#dit is de master branch
-=======
-#Dit is op de sasha branch
->>>>>>> Sasha
+#Dit is op de master branch
 def dneg_r(y, M=0.43/1.42953 , p=1, a=0):
     # input: scalar, output: scalar
     # define r
