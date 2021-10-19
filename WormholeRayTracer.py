@@ -2,7 +2,7 @@
 import numpy as np
 import cv2
 #sasha 123 yeet
-
+#dit is de master branch
 def dneg_r(y, M=0.43/1.42953 , p=1, a=0):
     # input: scalar, output: scalar
     # define r
@@ -130,7 +130,7 @@ def Sympl_ord2(p, q, Cst, h):
 
 def Simulate_DNeg(integrator, h, N, Nz = 400, Ny = 400):
     #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
-    #h: stepsize, N amount of steps, Ni pixels, #output: final value of 3D p, q matrix 
+    #h: stepsize, N amount of steps, Ni pixels, #output: final value of 3D p, q matrix
     #pict: 3D matrix (2D grid containg value in colorspace)
     S_c = screen_cart(Nz, Ny)
     S_cT = np.transpose(S_c, (2,0,1))
