@@ -1,7 +1,7 @@
 
 import numpy as np
 import cv2
-
+#sasha 123 yeet
 
 def dneg_r(y, M=0.43/1.42953 , p=1, a=0):
     # input: scalar, output: scalar
