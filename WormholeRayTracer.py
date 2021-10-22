@@ -86,7 +86,6 @@ def Sympl_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
     # configuration space containing 2D matrix with value for each ray
     p_l, p_phi, p_th = p
     l, phi, theta = q
-    sh = p_phi.shape
     b, B_2 = Cst
     r = dneg_r(l, M, rho)
     rec_r = 1/r
@@ -115,8 +114,12 @@ def Sympl_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
     p_th_h2 = -p_l*p_th_h*dr*rec_r + 0.5*phi_h**2*p_th*(2*sin2 - 3)
     
     h_2 = h**2
-    q = q + np.array([l_h, phi_h, theta_h])*h + np.array([l_h2, phi_h2, theta_h2])*h_2
-    p = p + np.array([p_l_h, np.zeros(sh), p_th_h])*h + np.array([p_l_h2, np.zeros(sh), p_th_h2])*h_2
+    q[0] += l_h*h + l_h2*h_2
+    q[1] += phi_h*h + phi_h2*h_2
+    q[2] += theta_h*h + theta_h2*h_2
+    
+    p[0] += p_l_h*h + p_l_h2*h_2
+    p[2] += p_th_h*h + p_th_h2*h_2
     return p, q
 
 def Simulate_DNeg(integrator, h, N, Nz = 400, Ny = 400):
@@ -150,7 +153,7 @@ def Make_Pict_RB(q):
     return cv2.cvtColor(np.array(pict, np.float32), 1)
 
 
-Motion, Photo = Simulate_DNeg(Sympl_DNeg, 0.001, 1000)
+Motion, Photo = Simulate_DNeg(Sympl_DNeg, 0.01, 1000)
 
 cv2.imshow('DNeg', Photo)
 cv2.waitKey(0)
