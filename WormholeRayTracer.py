@@ -4,14 +4,29 @@ import cv2
 
 
 def dneg_r(y, M=0.43/1.42953 , p=1, a=0):
+    """
+     input: scalar, output: scalar
+     define r(l) for a DNeg wormhole without gravity
+    """
     x = 2*(np.abs(y) - a)/(np.pi*M)
     return p + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
 
 def dneg_dr_dl(y, M=0.43/1.42953):
+    """
+     input:scalar , output: scalar
+     define derivative of r to l
+    """
     x = 2*np.abs(y)/(np.pi*M)
     return 2/np.pi*np.arctan(x)
 
-def screen_cart(Nz, Ny, L = 1): #Make screen
+def screen_cart(Nz, Ny, L = 1, d = 1):
+    """
+    input:  Nz amount of pixels on vertical side screen, Ny amount pixels horizontal side screen ,
+            L = physical width and lenght of the screen.
+    output: 3D matrix (2d matrix of each ray/pixel,
+            containing its location in 3D space)
+            d is the distance of the screen to the observer
+     """
     My = np.linspace(-L/2, L/2, Ny)
     Mz = np.linspace(-L/2, L/2, Nz)
     #cartesian product My X Mz
@@ -19,10 +34,14 @@ def screen_cart(Nz, Ny, L = 1): #Make screen
     for j in range(Nz):
         for i in range(Ny):
             # Placed at x = 1, (y,z) in My X Mz
-            arr.append([1, My[i],Mz[j]]) #(x, y, z)
+            arr.append([d, My[i],Mz[j]]) #(x, y, z)
     return np.array(arr).reshape(Nz, Ny, 3) #Flat array into matrix
 
-def cart_Sph(v): #cartesian to spherical coordinates
+def cart_Sph(v):
+    """
+    input:  matrix with cart. coord on first row,
+    output: matrix with Sph. coord on first row
+    """
     x,y,z = v
     r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
     phi = np.arctan2(y, x)
@@ -30,6 +49,16 @@ def cart_Sph(v): #cartesian to spherical coordinates
     return np.array([r, phi, theta])
 
 def inn_momenta(S_c, S_sph, Cst_f, inn_p_f):
+    """
+    input:  S_c: 3D matrix as an output of "screen_cart",
+            S_sph: 3D matrix with Sph. coord. on first row and then a 2D matrix
+            within that containing value for that coordinate,
+            Cst_f: function that calculates constant of motion,
+            inn_p_f: function that calculates inn. momenta ,
+    output: p: 3D matrix with coordinates in impulse space on first row and
+            then a 2D matrix within that with the value for each ray,
+            Cst: list of cst of motion containing the value for each ray in 2D matrix
+    """
     r, phi, theta = S_sph
     S_n = S_c/r.reshape(len(S_c) ,len(S_c[0]), 1) # normalize direction light rays
     S_n = np.transpose(S_n, (2,0,1)) # start array in terms of coordinates
@@ -37,14 +66,26 @@ def inn_momenta(S_c, S_sph, Cst_f, inn_p_f):
     Cst = Cst_f(p, S_sph) # calculate constant of motions
     return [p, Cst]
 
-def Cst_DNeg(p, q): # constants of motion of DNeg
+def Cst_DNeg(p, q):
+    """
+     input: p: matrix with coordinates in momentum space on first row,
+            q: matrix with coordinates in configuration space on first row ,
+    output: list of cst of motion containing the value for each ray in 2D matrix
+    """
     p_l, p_phi, p_th = p
     l, phi, theta = q
     b = p_phi
     B_2 = p_th**2 + p_phi**2/np.sin(theta)**2
     return np.array([b, B_2])
 
-def inn_mom_DNeg(S_n, S_sph): # initial momenta of rays in DNeg
+def inn_mom_DNeg(S_n, S_sph):
+    """
+    input:  S_c: 3D matrix as in output of "screen_cart",
+            S_sph: 3D matrix with Sph. coord. on first row and then a 2D matrix
+            within that containing value for that coordinate,
+    output: 3D matrix with coordinates in impulse space on first row and
+            then a 2D matrix within that with the value for each ray
+    """
     l, phi, theta = S_sph
     r = dneg_r(l)
     p_l = -S_n[0]
@@ -52,7 +93,15 @@ def inn_mom_DNeg(S_n, S_sph): # initial momenta of rays in DNeg
     p_th = r*S_n[2]
     return np.array([p_l, p_phi, p_th])
 
-def q_upd_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1): # update positions for DNeg with Stormer–Verlet
+def q_upd_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
+    """
+    input:  p: matrix with coordinates in momentum space on first row,
+            q: matrix with coordinates in configuration space on first row,
+            Cst: list of cst of motion containing the value for each ray in 2D matrix,
+            h: stepsize, M: scalar, rho: scalar,
+    output: list of coordinates in momentum space containing 2D matrix
+            with value for each ray
+    """
     p_l, p_phi, p_th = p
     l, phi, theta = q
     b, B_2 = Cst
@@ -67,7 +116,17 @@ def q_upd_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1): # update positions for 
     phi = phi + h0p5*b/(phi_half + 1/np.sin(theta)**2*rec_r_2)
     return [l, phi, theta]
 
-def p_upd_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1): # update momenta for DNeg with Stormer–Verlet
+def p_upd_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
+    """
+    input:  p: matrix with coordinates in momentum space on first row,
+            q: matrix with coordinates in configuration space on first row,
+            Cst: list of cst of motion containing the value for each ray in 2D matrix,
+            h: stepsize,
+            M: scalar,
+            rho: scalar,
+    output: list of coordinates in configuration space containing
+            2D matrix with value for each ray
+    """
     p_l, p_phi, p_th = p
     l, phi, theta = q
     b, B_2 = Cst
@@ -81,13 +140,28 @@ def p_upd_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1): # update momenta for DN
     p_th = p_th - h0p5*b**2*np.cos(theta)/np.sin(theta)**3*rec_r_2
     return [p_l, p_phi, p_th]
 
-def Sympl_ord2(p, q, Cst, h, p_upd, q_upd): # Stormer–Verlet put toghether
-    p = p_upd(p, q, Cst, h,)
-    q = p_upd(p, q, Cst, h,)
-    p = p_upd(p, q, Cst, h,)
+def Sympl_ord2(p, q, Cst, h):
+    """
+    input:  p: matrix with coordinates in momentum space on first row,
+            q: matrix with coordinates in configuration space on first row, µ
+            Cst: list of cst of motion containing the value for each ray in 2D matrix,
+            h: stepsize
+    output: p: list of coordinates in momentum space containing 2D matrix with
+            value for each ray, q: list of coordinates in configuration space containing
+            2D matrix with value for each ray
+    """
+    p = p_upd_DNeg(p, q, Cst, h,)
+    q = q_upd_DNeg(p, q, Cst, h,)
+    p = p_upd_DNeg(p, q, Cst, h,)
     return p, q
 
-def Simulate_DNeg(h, N, Nz = 400, Ny = 400 ): # h stepsize, N amount of steps, Ni pixels
+def Simulate_DNeg(integrator, h, N, Nz = 400, Ny = 400):
+    """
+    input:  function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
+            h: stepsize, N amount of steps, Ni pixels,
+    output: final value of 3D p, q matrix
+            pict: 3D matrix (2D grid containg value in colorspace)
+    """
     S_c = screen_cart(Nz, Ny)
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
@@ -100,7 +174,11 @@ def Simulate_DNeg(h, N, Nz = 400, Ny = 400 ): # h stepsize, N amount of steps, N
     return [p, q], pict
 
 def Make_Pict_RB(q):
-    #RGB based on sign(l), q = (l, phi, theta)
+    """
+    input: q: matrix with coordinates in configuration space on first row ouput:
+    3D matrix (2D matrix of rays each containing a coordinate in colorspace)
+    RGB based on sign(l), q = (l, phi, theta)
+    """
     pict = []
     for j in range(len(q[0])):
         row = []
