@@ -1,6 +1,8 @@
 
 import numpy as np
 import cv2
+import matplotlib.pyplot as plt
+
 #Dit is op de master branch
 def dneg_r(y, M=0.43/1.42953 , p=1, a=0):
     # input: scalar, output: scalar
@@ -66,7 +68,7 @@ def Cst_DNeg(p, q):
     return np.array([b, B_2])
 
 def inn_mom_DNeg(S_n, S_sph):
-    # input: S_c: 3D matrix as in output of "screen_cart",
+    # input: S_c: 3D matrix as earlier defined the in output of "screen_cart",
     # S_sph: 3D matrix with Sph. coord. on first row and then a 2D matrix
     # within that containing value for that coordinate, #output: 3D matrix
     # with coordinates in impulse space on first row and then a 2D matrix
@@ -124,18 +126,21 @@ def Sympl_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
 
 def Simulate_DNeg(integrator, h, N, Nz = 400, Ny = 400):
     #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
-    #h: stepsize, N amount of steps, Ni pixels, #output: final value of 3D p, q matrix
+    #h: stepsize, N amount of steps, Ni pixels, 
+    #output: motion: 5D matrix the elements being [p, q] p, q being 3D matrices
     #pict: 3D matrix (2D grid containg value in colorspace)
     S_c = screen_cart(Nz, Ny)
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
     q = np.zeros(p.shape) + h*0.1
+    Motion = [[p, q]]
 
     for i in range(N): #Integration
         p, q = integrator(p, q, Cst, h)
+        Motion.append([p, q])
     pict = Make_Pict_RB(q)
-    return [p, q], pict
+    return np.array(Motion), pict
 
 def Make_Pict_RB(q):
     # input: q: matrix with coordinates in configuration space on first row ouput:
@@ -152,9 +157,35 @@ def Make_Pict_RB(q):
         pict.append(row)
     return cv2.cvtColor(np.array(pict, np.float32), 1)
 
+def DNeg_Ham(Motion, M = 0.43/1.42953, rho = 1):
+    #input: 5D matrix, the elements being [p, q] with p, q as defined earlier
+    #output: 1D matrix, hamiltonian defined in each timestep
+    Motion = np.transpose(Motion, (1,2,3,4,0))
+    p, q = Motion
+    p_l, p_phi, p_th = p
+    l, phi, theta = q
+    r = dneg_r(l, M, rho)
+    rec_r = 1/r
+    rec_r_2 = rec_r**2
+    sin1 = np.sin(theta)
+    sin2 = sin1**2
+    
+    H1 = p_l**2
+    H2 = p_th**2*rec_r_2
+    H3 = p_phi**2/sin2*rec_r_2
+    return 0.5*np.sum((H1 + H2 + H3), axis=(0,1))
 
+
+def plot_1D(y):
+    fig, ax = plt.subplots()
+    x = np.arange(len(y))
+    ax.plot(x, y)
+    plt.tight_layout()
+    plt.show()
+    
 Motion, Photo = Simulate_DNeg(Sympl_DNeg, 0.01, 1000)
 
+plot_1D(DNeg_Ham(Motion))
 cv2.imshow('DNeg', Photo)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
