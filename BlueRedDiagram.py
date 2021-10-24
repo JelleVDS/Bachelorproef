@@ -2,12 +2,6 @@ import numpy as np
 import cv2
 from PIL import Image
 
-"""
-We pakken een scherm in carthesische coordinaten en zetten het om naar sferisch (zie wormhole)
-Dan adhv van phi en theta waarden geven we een blauw/rood waarde aan elke pixel
-theta = 0-> pi dus stappen van 255/pi
-phi = 0 -> 2pi dus stappen van 255/(2pi)
-"""
 
 def screen_cart(Nz, Ny, L = 1):
      # input: Nz amount of pixels on vertical side screen, Ny amount pixels horizontal side screen ,
