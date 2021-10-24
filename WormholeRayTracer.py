@@ -65,7 +65,7 @@ def Cst_DNeg(p, q):
     l, phi, theta = q
     b = p_phi
     B_2 = p_th**2 + p_phi**2/np.sin(theta)**2
-    return np.array([b, B_2])
+    return [b, B_2]
 
 def inn_mom_DNeg(S_n, S_sph):
     # input: S_c: 3D matrix as earlier defined the in output of "screen_cart",
