@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+from PIL import Image
 
 """
 We pakken een scherm in carthesische coordinaten en zetten het om naar sferisch (zie wormhole)
@@ -47,8 +48,8 @@ def blue_red(Ny, Nz):
     bereik_phi   = 2 * phi_max
 
     # de blauw en roodwaarden voor theta en phi berekenen van het scherm
-    blue = (255 / bereik_theta) * abs(theta - theta_max)
-    red  = (255 / bereik_phi) * (phi + phi_max)
+    blue = (np.around((255 / bereik_theta) * abs(theta - theta_max))).astype(int)
+    red  = (np.around((255 / bereik_phi) * (phi + phi_max))).astype(int)
     return (blue, red)
 
 # print(blue_red(4, 6))
@@ -66,6 +67,20 @@ def blue_red_image(Ny, Nz):
     for i in range(0, Ny):
         row = []
         for j in range(0, Nz):
-            row.append([red[j][i],0,blue[j][i]])
-        pixels.append(row)
-    return pixels
+            row.append([int(red[j][i]),int(0),int(blue[j][i])])
+        pixels.append(np.array(row))
+    return np.array(pixels)
+
+def make_image(Ny, Nz):
+    pixels = blue_red_image(Ny, Nz)
+    pic = Image.fromarray(pixels, 'RGB')
+    # print(pixels)
+    # pic = cv2.cvtColor(np.array(pixels, np.float32), 1)
+    return pic
+
+Photo = make_image(800, 1000)
+Photo.show()
+# cv2.imshow('titel', Photo)
+# cv2.destroyAllWindows()
+# cv2.waitKey(0)
+print(Photo)
