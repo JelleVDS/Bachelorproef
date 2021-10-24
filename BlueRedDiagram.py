@@ -1,13 +1,7 @@
 import numpy as np
-# import cv2
-import matplotlib.pyplot as plt
+import cv2
+from PIL import Image
 
-"""
-We pakken een scherm in carthesische coordinaten en zetten het om naar sferisch (zie wormhole)
-Dan adhv van phi en theta waarden geven we een blauw/rood waarde aan elke pixel
-theta = 0-> pi dus stappen van 255/pi
-phi = 0 -> 2pi dus stappen van 255/(2pi)
-"""
 
 def screen_cart(Nz, Ny, L = 1):
      # input: Nz amount of pixels on vertical side screen, Ny amount pixels horizontal side screen ,
@@ -48,18 +42,18 @@ def blue_red(Ny, Nz):
     bereik_phi   = 2 * phi_max
 
     # de blauw en roodwaarden voor theta en phi berekenen van het scherm
-    blue = (255 / bereik_theta) * abs(theta - theta_max)
-    red  = (255 / bereik_phi) * (phi + phi_max)
+    blue = (np.around((255 / bereik_theta) * abs(theta - theta_max))).astype(int)
+    red  = (np.around((255 / bereik_phi) * (phi + phi_max))).astype(int)
     return (blue, red)
 
-print(blue_red(4, 6))
+# print(blue_red(4, 6))
 # print(cart_Sph([1, 1/2, 1/2]))
 # print(cart_Sph([1, -1/2, -1/2]))
 # S_c   = screen_cart(5, 6)
 # S_cT  = np.transpose(S_c, (2,0,1))
 # S_sph = cart_Sph(S_cT)
 # r, phi, theta = S_sph
-# print(S_cT)
+# print(np.min(theta[-1]))
 
 def blue_red_image(Ny, Nz):
     blue, red = blue_red(Ny, Nz)
@@ -67,26 +61,20 @@ def blue_red_image(Ny, Nz):
     for i in range(0, Ny):
         row = []
         for j in range(0, Nz):
-            row.append([red[j][i],0,blue[j][i]])
-        pixels.append(row)
-    return pixels
-
-print(blue_red_image(4,6))
+            row.append([int(red[j][i]),int(0),int(blue[j][i])])
+        pixels.append(np.array(row))
+    return np.array(pixels)
 
 def make_image(Ny, Nz):
     pixels = blue_red_image(Ny, Nz)
-    pic = cv2.cvtColor(np.array(pixels, np.float32), 1)
+    pic = Image.fromarray(pixels, 'RGB')
+    # print(pixels)
+    # pic = cv2.cvtColor(np.array(pixels, np.float32), 1)
     return pic
 
-def plot_1D(y):
-    fig, ax = plt.subplots()
-    x = np.arange(len(y))
-    ax.plot(x, y)
-    plt.tight_layout()
-    plt.show()
-
-plot_1D(make_image(400,400))
-cv2.imshow('titel', Photo)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-cv2.waitKey(1)
+Photo = make_image(800, 1000)
+Photo.show()
+# cv2.imshow('titel', Photo)
+# cv2.destroyAllWindows()
+# cv2.waitKey(0)
+print(Photo)
