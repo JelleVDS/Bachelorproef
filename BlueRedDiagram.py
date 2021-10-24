@@ -51,7 +51,7 @@ def blue_red(Ny, Nz):
     red  = (255 / bereik_phi) * (phi + phi_max)
     return (blue, red)
 
-print(blue_red(4, 6))
+# print(blue_red(4, 6))
 # print(cart_Sph([1, 1/2, 1/2]))
 # print(cart_Sph([1, -1/2, -1/2]))
 # S_c   = screen_cart(4, 6)
@@ -59,3 +59,13 @@ print(blue_red(4, 6))
 # S_sph = cart_Sph(S_cT)
 # r, phi, theta = S_sph
 # print(np.min(theta[-1]))
+
+def blue_red_image(Ny, Nz):
+    blue, red = blue_red(Ny, Nz)
+    pixels = []
+    for i in range(0, Ny):
+        row = []
+        for j in range(0, Nz):
+            row.append([red[j][i],0,blue[j][i]])
+        pixels.append(row)
+    return pixels
