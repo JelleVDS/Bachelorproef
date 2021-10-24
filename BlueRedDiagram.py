@@ -23,6 +23,7 @@ def cart_Sph(v):
     x,y,z = v
     r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
     phi = np.arctan2(y, x)
+    # print(phi)
     theta = np.arccos(z / r)
     return (r, phi, theta)
 
@@ -44,6 +45,7 @@ def blue_red(Ny, Nz):
     # de blauw en roodwaarden voor theta en phi berekenen van het scherm
     blue = (np.around((255 / bereik_theta) * abs(theta - theta_max))).astype(int)
     red  = (np.around((255 / bereik_phi) * (phi + phi_max))).astype(int)
+    # print(blue)
     return (blue, red)
 
 # print(blue_red(4, 6))
@@ -63,6 +65,7 @@ def blue_red_image(Ny, Nz):
         for j in range(0, Nz):
             row.append([int(red[j][i]),int(0),int(blue[j][i])])
         pixels.append(np.array(row))
+        # print(pixels)
     return np.array(pixels)
 
 def make_image(Ny, Nz):
@@ -72,7 +75,7 @@ def make_image(Ny, Nz):
     # pic = cv2.cvtColor(np.array(pixels, np.float32), 1)
     return pic
 
-Photo = make_image(800, 1000)
+Photo = make_image(600, 800)
 Photo.show()
 # cv2.imshow('titel', Photo)
 # cv2.destroyAllWindows()
