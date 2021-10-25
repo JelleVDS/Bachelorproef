@@ -19,24 +19,26 @@ def imb_f(l): #input: 1D array , output: 1D array
 def imb_f_int(l): #input: 1D array , output: 1D array
     Z = []
     # integratie voor stijgende l
-    for i in range(1,len(l)):
-         Z.append(np.trapz(imb_f(l[:i]), l[:i]))
+    for i in range(len(l)):
+         Z.append(np.trapz(imb_f(l[:i]), l[:i], axis= 0))
     return np.array(Z)
 
-def inb_diagr(I, N): #input: I: interval, N: #points, output: plot
-    fig = plt.figure()
-    ax = fig.add_subplot(projection='3d')
+def inb_diagr(I, N , ax = None): #input: I: interval, N: #points, output: plot
+    if ax == None:
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
 
     l = np.linspace(I[0], I[1], N+1) # N+1, want dan N intervallen
     phi = np.linspace(0, 2*np.pi, N)
-    L, PHI = np.meshgrid(dneg_r(l[1:]), phi) # radius is r(l)
+    L, PHI = np.meshgrid(dneg_r(l), phi) # radius is r(l)
 
     #tile want symmetrisch voor rotaties, onafhankelijk van phi
     Z = np.tile(imb_f_int(l), (N, 1)) #z(l)
 
     X, Y = L*np.cos(PHI), L*np.sin(PHI)
-    ax.plot_surface(X, Y, Z, cmap=plt.cm.YlGnBu_r)
-    plt.show()
+    ax.plot_surface(X, Y, Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
+    if ax == None:
+        plt.show()
 
-
-inb_diagr([-10, 10], 1000)
+if __name__ == '__main__': 
+    inb_diagr([-10, 10], 1000)

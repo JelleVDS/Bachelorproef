@@ -3,6 +3,9 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import RungeKutta as rk
+import InbeddingDiagramDNeg as Dia
+import Symplectic_DNeg as Smpl
+import time
 #import scipy as sc
 
 #Dit is op de master branch
@@ -67,7 +70,7 @@ def Cst_DNeg(p, q):
     l, phi, theta = q
     b = p_phi
     B_2 = p_th**2 + p_phi**2/np.sin(theta)**2
-    return [b, B_2]
+    return np.array([b, B_2])
 
 def inn_mom_DNeg(S_n, S_sph):
     # input: S_c: 3D matrix as earlier defined the in output of "screen_cart",
@@ -82,53 +85,10 @@ def inn_mom_DNeg(S_n, S_sph):
     p_th = r*S_n[2]
     return np.array([p_l, p_phi, p_th])
 
-def Sympl_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
-    # input: p: matrix with coordinates in momentum space on first row,
-    # q: matrix with coordinates in configuration space on first row,
-    # Cst: list of cst of motion containing the value for each ray in 2D matrix,
-    # h: stepsize, M: scalar, rho: scalar, output: list of coordinates in
-    # configuration space containing 2D matrix with value for each ray
-    p_l, p_phi, p_th = p
-    l, phi, theta = q
-    b, B_2 = Cst
-    r = dneg_r(l, M, rho)
-    rec_r = 1/r
-    rec_r_2 = rec_r**2
-    rec_r_3 = rec_r_2*rec_r
-    dr = dneg_dr_dl(l, M)
-    d2r = dneg_d2r_dl2(l, M)
-    sin1 = np.sin(theta)
-    cos1 = np.cos(theta)
-    sin2 = sin1**2
-    sin3 = sin1*sin2
-
-    l_h = p_l
-    phi_h = b/sin1**2*rec_r_2
-    theta_h = p_th*rec_r_2
-
-    p_l_h = B_2*dr*rec_r_3
-    p_th_h = b**2*cos1/sin3*rec_r_2
-
-    l_h2 = 0.5*p_l_h
-    phi_h2 = -phi_h*(p_l*dr*rec_r + p_th*cos1/sin1*rec_r_2)
-    theta_h2 = 0.5*p_th_h*rec_r_2 - p_l*p_th*dr*rec_r_3
-
-    c = 0.5*r*d2r - 1.5*dr**2
-    p_l_h2 = p_l*(b*phi_h*rec_r_2 + theta_h**2)*c
-    p_th_h2 = -p_l*p_th_h*dr*rec_r + 0.5*phi_h**2*p_th*(2*sin2 - 3)
-
-    h_2 = h**2
-    q[0] += l_h*h + l_h2*h_2
-    q[1] += phi_h*h + phi_h2*h_2
-    q[2] += theta_h*h + theta_h2*h_2
-
-    p[0] += p_l_h*h + p_l_h2*h_2
-    p[2] += p_th_h*h + p_th_h2*h_2
-    return p, q
-
-def Simulate_DNeg(integrator, h, N, loc, Nz = 200, Ny = 200):
+def Simulate_DNeg(integrator, h, N, loc, Nz = 14**2, Ny = 14**2):
     #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
     #h: stepsize, N amount of steps, Ni pixels,
+    #loc: initial position
     #output: motion: 5D matrix the elements being [p, q] p, q being 3D matrices
     #pict: 3D matrix (2D grid containg value in colorspace)
     S_c = screen_cart(Nz, Ny)
@@ -137,12 +97,12 @@ def Simulate_DNeg(integrator, h, N, loc, Nz = 200, Ny = 200):
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
     q = np.zeros(p.shape) + loc
     Motion = [[p, q]]
-
+    
     for i in range(N): #Integration
         p, q = integrator(p, q, Cst, h)
         Motion.append([p, q])
     pict = Make_Pict_RB(q)
-    print(pict)
+    #print(pict)
     return np.array(Motion), pict
 
 def Make_Pict_RB(q):
@@ -180,16 +140,54 @@ def DNeg_Ham(Motion, M = 0.43/1.42953, rho = 1):
     H3 = p_phi**2/sin2*rec_r_2
     return 0.5*np.sum((H1 + H2 + H3), axis=(0,1))
 
-
 def plot_1D(y):
     fig, ax = plt.subplots()
     x = np.arange(len(y))
     ax.plot(x, y)
     plt.tight_layout()
     plt.show()
+    
+def gdsc(Motion):
+    # input: 5D matrix, the elements being [p, q] with p, q as defined earlier
+    Motion = np.transpose(Motion, (1,2,0,3,4))
+    Ny, Nz =  Motion[0][0][0].shape
+    Ny_s = int(np.sqrt(Ny))
+    Nz_s = int(np.sqrt(Nz))
+    Sample = Motion[:, :, :, 1::Ny_s, 1::Nz_s]
+    S_c = screen_cart(Ny_s, Nz_s)
+    S_cT = np.transpose(S_c, (2,0,1))
+    n = np.linalg.norm(S_cT, axis=0)
+    n_u, ind = np.unique(n, return_inverse=True)
+    N = n_u.size
+    
+    p, q = Sample
+    p_l, p_phi, p_th = p
+    l, phi, theta = q
+ 
+    ax = plt.figure().add_subplot(projection='3d')
+    X, Y = dneg_r(l)*np.cos(phi), dneg_r(l)*np.sin(phi)
+    Z = -Dia.imb_f_int(l)
+    
+    #
+    cl = plt.cm.viridis(np.arange(N)/N)
+    for i in range(Ny_s):
+        for j in range(Nz_s):
+            ij = i + Ny_s*j
+            cl_i =cl[ind[ij]]
+            ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
+    ax.set_title("Donker pixels binnenkant scherm, licht pixels buitenkant")
+    Dia.inb_diagr([-10, 10], 1000, ax)
+    plt.show()
 
-# Motion1, Photo1 = Simulate_DNeg(Sympl_DNeg, 0.01, 1000, 8, 400, 400)
-Motion2, Photo2 = Simulate_DNeg(rk.runge_kutta, 1, 1000, 50)
+start = time.time()
+Motion1, Photo1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1000, 9, 400, 400)
+end = time.time()
+print(end - start)
+
+start = time.time()
+Motion2, Photo2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 400, 400)
+end = time.time()
+print(end - start)
 
 # if  np.all(Photo1 == Photo2):
 #     print("Succus")
@@ -197,10 +195,13 @@ Motion2, Photo2 = Simulate_DNeg(rk.runge_kutta, 1, 1000, 50)
 #     print("Wouldn't you like to know, weatherboy?")
 # Photo.show()
 
-# plot_1D(DNeg_Ham(Motion1))
+plot_1D(DNeg_Ham(Motion1))
 plot_1D(DNeg_Ham(Motion2))
 
-# cv2.imshow('DNeg', Photo1)
+gdsc(Motion1)
+gdsc(Motion2)
+
+cv2.imshow('DNeg', Photo1)
 cv2.imshow('DNeg', Photo2)
 
 cv2.waitKey(0)
