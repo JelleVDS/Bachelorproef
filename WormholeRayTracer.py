@@ -3,7 +3,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import RungeKutta as rk
-import scipy as sc
+#import scipy as sc
 
 #Dit is op de master branch
 def dneg_r(y, M=0.43/1.42953 , p=1, a=0):
@@ -126,7 +126,7 @@ def Sympl_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
     p[2] += p_th_h*h + p_th_h2*h_2
     return p, q
 
-def Simulate_DNeg(integrator, h, N, Nz = 200, Ny = 200):
+def Simulate_DNeg(integrator, h, N, loc, Nz = 200, Ny = 200):
     #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
     #h: stepsize, N amount of steps, Ni pixels,
     #output: motion: 5D matrix the elements being [p, q] p, q being 3D matrices
@@ -135,7 +135,7 @@ def Simulate_DNeg(integrator, h, N, Nz = 200, Ny = 200):
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
-    q = np.zeros(p.shape) + 50
+    q = np.zeros(p.shape) + loc
     Motion = [[p, q]]
 
     for i in range(N): #Integration
@@ -188,18 +188,21 @@ def plot_1D(y):
     plt.tight_layout()
     plt.show()
 
-# Motion1, Photo1 = Simulate_DNeg(Sympl_DNeg, 0.01, 1000)
-Motion2, Photo2 = Simulate_DNeg(rk.runge_kutta, 1, 1000)
+# Motion1, Photo1 = Simulate_DNeg(Sympl_DNeg, 0.01, 1000, 8, 400, 400)
+Motion2, Photo2 = Simulate_DNeg(rk.runge_kutta, 1, 1000, 50)
 
 # if  np.all(Photo1 == Photo2):
 #     print("Succus")
 # else:
 #     print("Wouldn't you like to know, weatherboy?")
 # Photo.show()
+
 # plot_1D(DNeg_Ham(Motion1))
 plot_1D(DNeg_Ham(Motion2))
+
 # cv2.imshow('DNeg', Photo1)
 cv2.imshow('DNeg', Photo2)
+
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 cv2.waitKey(1)
