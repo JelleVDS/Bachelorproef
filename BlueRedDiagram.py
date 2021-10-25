@@ -43,8 +43,8 @@ def blue_red(Ny, Nz):
     bereik_phi   = 2 * phi_max
 
     # de blauw en roodwaarden voor theta en phi berekenen van het scherm
-    blue = (np.around((255 / bereik_theta) * abs(theta - theta_max))).astype(int)
-    red  = (np.around((255 / bereik_phi) * (phi + phi_max))).astype(int)
+    blue = ((np.around((255 / bereik_theta) * abs(theta - theta_max)))/255)
+    red  = ((np.around((255 / bereik_phi) * (phi + phi_max)))/255)
     # print(blue)
     return (blue, red)
 
@@ -63,21 +63,21 @@ def blue_red_image(Ny, Nz):
     for i in range(0, Ny):
         row = []
         for j in range(0, Nz):
-            row.append([int(red[j][i]),int(0),int(blue[j][i])])
+            row.append([red[j][i],int(0),blue[j][i]])
         pixels.append(np.array(row))
         # print(pixels)
     return np.array(pixels)
 
 def make_image(Ny, Nz):
     pixels = blue_red_image(Ny, Nz)
-    pic = Image.fromarray(pixels, 'RGB')
+    # pic = Image.fromarray(pixels, 'RGB')
     # print(pixels)
-    # pic = cv2.cvtColor(np.array(pixels, np.float32), 1)
+    pic = cv2.cvtColor(np.array(pixels, np.float32), 1)
     return pic
 
-Photo = make_image(600, 800)
-Photo.show()
-# cv2.imshow('titel', Photo)
+Photo = make_image(400, 600)
+# Photo.show()
+cv2.imshow('titel', Photo)
 # cv2.destroyAllWindows()
-# cv2.waitKey(0)
-print(Photo)
+cv2.waitKey(0)
+# print(Photo)

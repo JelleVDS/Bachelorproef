@@ -2,6 +2,8 @@
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
+import RungeKutta as rk
+import scipy as sc
 
 #Dit is op de master branch
 def dneg_r(y, M=0.43/1.42953 , p=1, a=0):
@@ -99,47 +101,48 @@ def Sympl_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
     cos1 = np.cos(theta)
     sin2 = sin1**2
     sin3 = sin1*sin2
-    
+
     l_h = p_l
     phi_h = b/sin1**2*rec_r_2
     theta_h = p_th*rec_r_2
-    
+
     p_l_h = B_2*dr*rec_r_3
     p_th_h = b**2*cos1/sin3*rec_r_2
-    
+
     l_h2 = 0.5*p_l_h
     phi_h2 = -phi_h*(p_l*dr*rec_r + p_th*cos1/sin1*rec_r_2)
     theta_h2 = 0.5*p_th_h*rec_r_2 - p_l*p_th*dr*rec_r_3
-    
+
     c = 0.5*r*d2r - 1.5*dr**2
     p_l_h2 = p_l*(b*phi_h*rec_r_2 + theta_h**2)*c
     p_th_h2 = -p_l*p_th_h*dr*rec_r + 0.5*phi_h**2*p_th*(2*sin2 - 3)
-    
+
     h_2 = h**2
     q[0] += l_h*h + l_h2*h_2
     q[1] += phi_h*h + phi_h2*h_2
     q[2] += theta_h*h + theta_h2*h_2
-    
+
     p[0] += p_l_h*h + p_l_h2*h_2
     p[2] += p_th_h*h + p_th_h2*h_2
     return p, q
 
-def Simulate_DNeg(integrator, h, N, Nz = 400, Ny = 400):
+def Simulate_DNeg(integrator, h, N, Nz = 200, Ny = 200):
     #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
-    #h: stepsize, N amount of steps, Ni pixels, 
+    #h: stepsize, N amount of steps, Ni pixels,
     #output: motion: 5D matrix the elements being [p, q] p, q being 3D matrices
     #pict: 3D matrix (2D grid containg value in colorspace)
     S_c = screen_cart(Nz, Ny)
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
-    q = np.zeros(p.shape) + h*0.1
+    q = np.zeros(p.shape) + 50
     Motion = [[p, q]]
 
     for i in range(N): #Integration
         p, q = integrator(p, q, Cst, h)
         Motion.append([p, q])
     pict = Make_Pict_RB(q)
+    print(pict)
     return np.array(Motion), pict
 
 def Make_Pict_RB(q):
@@ -151,11 +154,13 @@ def Make_Pict_RB(q):
         row = []
         for i in range(len(q[0][0])):
             if q[0][j,i] <= 0:
-                row.append([255, 0, 0])
+                row.append(np.array([1, 0, 0]))
             else:
-                row.append([0, 0, 255])
-        pict.append(row)
-    return cv2.cvtColor(np.array(pict, np.float32), 1)
+                row.append(np.array([0, 0, 1]))
+        pict.append(np.array(row))
+    pict = cv2.cvtColor(np.array(pict, np.float32), 1)
+    # pict = Image.fromarray(np.array(pict), 'RGB')
+    return pict
 
 def DNeg_Ham(Motion, M = 0.43/1.42953, rho = 1):
     #input: 5D matrix, the elements being [p, q] with p, q as defined earlier
@@ -169,7 +174,7 @@ def DNeg_Ham(Motion, M = 0.43/1.42953, rho = 1):
     rec_r_2 = rec_r**2
     sin1 = np.sin(theta)
     sin2 = sin1**2
-    
+
     H1 = p_l**2
     H2 = p_th**2*rec_r_2
     H3 = p_phi**2/sin2*rec_r_2
@@ -182,11 +187,19 @@ def plot_1D(y):
     ax.plot(x, y)
     plt.tight_layout()
     plt.show()
-    
-Motion, Photo = Simulate_DNeg(Sympl_DNeg, 0.01, 1000)
 
-plot_1D(DNeg_Ham(Motion))
-cv2.imshow('DNeg', Photo)
+# Motion1, Photo1 = Simulate_DNeg(Sympl_DNeg, 0.01, 1000)
+Motion2, Photo2 = Simulate_DNeg(rk.runge_kutta, 1, 1000)
+
+# if  np.all(Photo1 == Photo2):
+#     print("Succus")
+# else:
+#     print("Wouldn't you like to know, weatherboy?")
+# Photo.show()
+# plot_1D(DNeg_Ham(Motion1))
+plot_1D(DNeg_Ham(Motion2))
+# cv2.imshow('DNeg', Photo1)
+cv2.imshow('DNeg', Photo2)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 cv2.waitKey(1)
