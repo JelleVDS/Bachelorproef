@@ -15,6 +15,22 @@ def dneg_dr_dl(y, M=0.43/1.42953):
     dr_dl = 2/np.pi*np.arctan(x)
     return dr_dl
 
+def DNeg_Ham(p, q , M = 0.43/1.42953, rho = 1):
+    #input: p, q  3D matrices as defined earlier
+    #output: 1D matrix, hamiltonian defined in each timestep
+    p_l, p_phi, p_th = p
+    l, phi, theta = q
+    r = dneg_r(l, M, rho)
+    rec_r = 1/r
+    rec_r_2 = rec_r**2
+    sin1 = np.sin(theta)
+    sin2 = sin1**2
+
+    H1 = p_l**2
+    H2 = p_th**2*rec_r_2
+    H3 = p_phi**2/sin2*rec_r_2
+    return 0.5*np.sum((H1 + H2 + H3))
+
 def runge_kutta(p, q, Cst, h):
     """
     Input:  takes the momentum matrix p, the position matrix q, the constants of motion Cst
@@ -26,12 +42,24 @@ def runge_kutta(p, q, Cst, h):
     b, B = Cst
 
     r = dneg_r(l)
+    rec_r = 1/r
+    rec_r_2 = rec_r**2
+    rec_r_3 = rec_r_2*rec_r  
+    sin1 = np.sin(theta)
+    cos1 = np.cos(theta)
+    sin2 = sin1**2
+    sin3 = sin1*sin2
+    H1 = p_l**2
+    H2 = p_th**2*rec_r_2
+    H3 = p_phi**2/sin2*rec_r_2
+    H = 0.5*np.sum((H1 + H2 + H3))
+    
     #Using the hamiltonian equations of motion
     dl_dt       = p_l
-    dtheta_dt   = p_th / r**2
-    dphi_dt     = b / (r**2 * np.sin(theta)**2)
-    dpl_dt      = B**2 * (dneg_dr_dl(l)) / r**3
-    dpth_dt     = b ** 2 * np.cos(theta) / (r ** 2 * np.sin(theta)**2)
+    dtheta_dt   = p_th * rec_r_2
+    dphi_dt     = b / sin2 * rec_r_2
+    dpl_dt      = B**2 * (dneg_dr_dl(l)) * rec_r_3
+    dpth_dt     = b ** 2 * cos1 / sin3 * rec_r_2
     #defines k1
     k1 = [dl_dt, dphi_dt, dtheta_dt, dpl_dt, np.zeros(dl_dt.shape), dpth_dt]
     # Updating values
@@ -48,7 +76,7 @@ def runge_kutta(p, q, Cst, h):
     dtheta_dt   = p_th / r**2
     dphi_dt     = b / (r**2 * np.sin(theta)**2)
     dpl_dt      = B**2 * (dneg_dr_dl(l)) / r**3
-    dpth_dt     = b ** 2 * np.cos(theta) / (r ** 2 * np.sin(theta)**2)
+    dpth_dt     = b ** 2 * np.cos(theta) / (r ** 2 * np.sin(theta)**3)
 
     k2 = [dl_dt, dphi_dt, dtheta_dt, dpl_dt, np.zeros(dl_dt.shape), dpth_dt]
     # Updating values
@@ -64,7 +92,7 @@ def runge_kutta(p, q, Cst, h):
     dtheta_dt   = p_th / r**2
     dphi_dt     = b / (r**2 * np.sin(theta)**2)
     dpl_dt      = B**2 * (dneg_dr_dl(l)) / r**3
-    dpth_dt     = b ** 2 * np.cos(theta) / (r ** 2 * np.sin(theta)**2)
+    dpth_dt     = b ** 2 * np.cos(theta) / (r ** 2 * np.sin(theta)**3)
 
     k3 = [dl_dt, dphi_dt,dtheta_dt, dpl_dt, np.zeros(dl_dt.shape),  dpth_dt]
     # Updating values
@@ -78,11 +106,11 @@ def runge_kutta(p, q, Cst, h):
     dtheta_dt   = p_th / r**2
     dphi_dt     = b / (r**2 * np.sin(theta)**2)
     dpl_dt      = B**2 * (dneg_dr_dl(l)) / r**3
-    dpth_dt     = b ** 2 * np.cos(theta) / (r ** 2 * np.sin(theta)**2)
+    dpth_dt     = b ** 2 * np.cos(theta) / (r ** 2 * np.sin(theta)**3)
 
     k4 = [dl_dt, dphi_dt, dtheta_dt, dpl_dt, np.zeros(dl_dt.shape), dpth_dt]
     # Updating matrices of position and momenta
     p = p + np.multiply(k1[3:],(h/6)) + np.multiply(k2[3:],(h/3)) + np.multiply(k3[3:],(h/3)) + np.multiply(k4[3:],(h/6))
     q = q + np.multiply(k1[:3],(h/6)) + np.multiply(k2[:3],(h/3)) + np.multiply(k3[:3],(h/3)) + np.multiply(k4[:3],(h/6))
 
-    return [p, q]
+    return [p, q, H]

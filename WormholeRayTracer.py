@@ -97,13 +97,16 @@ def Simulate_DNeg(integrator, h, N, loc, Nz = 14**2, Ny = 14**2):
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
     q = np.zeros(p.shape) + loc
     Motion = [[p, q]]
+    H = []
     
     for i in range(N): #Integration
-        p, q = integrator(p, q, Cst, h)
+        p, q , H_i = integrator(p, q, Cst, h)
         Motion.append([p, q])
+        H.append(H_i)
+    H.append(DNeg_Ham(p, q))    
     pict = Make_Pict_RB(q)
     #print(pict)
-    return np.array(Motion), pict
+    return np.array(Motion), pict , H
 
 def Make_Pict_RB(q):
     # input: q: matrix with coordinates in configuration space on first row ouput:
@@ -122,11 +125,9 @@ def Make_Pict_RB(q):
     # pict = Image.fromarray(np.array(pict), 'RGB')
     return pict
 
-def DNeg_Ham(Motion, M = 0.43/1.42953, rho = 1):
-    #input: 5D matrix, the elements being [p, q] with p, q as defined earlier
+def DNeg_Ham(p, q , M = 0.43/1.42953, rho = 1):
+    #input: p, q  3D matrices as defined earlier
     #output: 1D matrix, hamiltonian defined in each timestep
-    Motion = np.transpose(Motion, (1,2,3,4,0))
-    p, q = Motion
     p_l, p_phi, p_th = p
     l, phi, theta = q
     r = dneg_r(l, M, rho)
@@ -138,7 +139,7 @@ def DNeg_Ham(Motion, M = 0.43/1.42953, rho = 1):
     H1 = p_l**2
     H2 = p_th**2*rec_r_2
     H3 = p_phi**2/sin2*rec_r_2
-    return 0.5*np.sum((H1 + H2 + H3), axis=(0,1))
+    return 0.5*np.sum((H1 + H2 + H3))
 
 def plot_1D(y):
     fig, ax = plt.subplots()
@@ -168,35 +169,28 @@ def gdsc(Motion):
     X, Y = dneg_r(l)*np.cos(phi), dneg_r(l)*np.sin(phi)
     Z = -Dia.imb_f_int(l)
     
-    #
     cl = plt.cm.viridis(np.arange(N)/N)
     for i in range(Ny_s):
         for j in range(Nz_s):
             ij = i + Ny_s*j
             cl_i =cl[ind[ij]]
             ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
-    ax.set_title("Donker pixels binnenkant scherm, licht pixels buitenkant")
+    ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
     Dia.inb_diagr([-10, 10], 1000, ax)
     plt.show()
 
 start = time.time()
-Motion1, Photo1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1000, 9, 400, 400)
+Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1000, 9, 400, 400)
 end = time.time()
 print(end - start)
 
 start = time.time()
-Motion2, Photo2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 400, 400)
+Motion2, Photo2, H2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 400, 400)
 end = time.time()
 print(end - start)
 
-# if  np.all(Photo1 == Photo2):
-#     print("Succus")
-# else:
-#     print("Wouldn't you like to know, weatherboy?")
-# Photo.show()
-
-plot_1D(DNeg_Ham(Motion1))
-plot_1D(DNeg_Ham(Motion2))
+plot_1D(H1)
+plot_1D(H2)
 
 gdsc(Motion1)
 gdsc(Motion2)

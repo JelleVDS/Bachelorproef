@@ -25,6 +25,11 @@ def Sympl_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
     cos1 = np.cos(theta)
     sin2 = sin1**2
     sin3 = sin1*sin2
+    
+    H1 = p_l**2
+    H2 = p_th**2*rec_r_2
+    H3 = p_phi**2/sin2*rec_r_2
+    H = 0.5*np.sum((H1 + H2 + H3))
 
     l_h = p_l
     phi_h = b/sin1**2*rec_r_2
@@ -51,4 +56,5 @@ def Sympl_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
         l +l_h*h + l_h2*h_2,
         phi + phi_h*h + phi_h2*h_2,
         theta + theta_h*h + theta_h2*h_2
-        ])
+        ],
+        H)
