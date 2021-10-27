@@ -98,28 +98,49 @@ def Simulate_DNeg(integrator, h, N, loc, Nz = 14**2, Ny = 14**2):
     q = np.zeros(p.shape) + loc
     Motion = [[p, q]]
     H = []
-    
+    start = time.time()
     for i in range(N): #Integration
         p, q , H_i = integrator(p, q, Cst, h)
         Motion.append([p, q])
         H.append(H_i)
-    H.append(DNeg_Ham(p, q))    
-    pict = Make_Pict_RB(q)
+    H.append(DNeg_Ham(p, q))
+    end = time.time()
+    print(end - start)    
+    pict = Make_Pict_RB(q, 40, 0.5, h)
     #print(pict)
     return np.array(Motion), pict , H
 
-def Make_Pict_RB(q):
+def Make_Pict_RB(q, N_a, N_r, h):
     # input: q: matrix with coordinates in configuration space on first row ouput:
     # 3D matrix (2D matrix of rays each containing a coordinate in colorspace)
-    # RGB based on sign(l), q = (l, phi, theta)
+    # N_a subdivision angles, N_r: linspace radius to form grid, h: width lines grid
+    Par_phi = np.arange(0, 2*np.pi, N_a-1)
+    Par_th = np.arange(0, np.pi, N_a-1) 
     pict = []
     for j in range(len(q[0])):
         row = []
         for i in range(len(q[0][0])):
-            if q[0][j,i] <= 0:
-                row.append(np.array([1, 0, 0]))
+            r = q[0][j,i]
+            phi = q[1][j,i]
+            th = q[2][j,i]
+            on_shell = np.abs(r - np.mod(r, N_r)) < h
+            on_phi = np.any(np.abs(phi - Par_phi) < h)
+            on_theta = np.any(np.abs(th - Par_th) < h)
+            
+            if (on_phi and on_theta) or (on_phi and on_shell) or (on_shell and on_theta):
+                row.append(np.array([0, 0, 0]))
             else:
-                row.append(np.array([0, 0, 1]))
+                if phi > np.pi and th > np.pi/2:
+                    row.append([0, 1, 0])
+                elif phi > np.pi and th < np.pi/2:
+                    row.append([1, 0, 0])
+                elif phi < np.pi and th > np.pi/2:
+                    row.append([0, 0, 1])
+                elif phi < np.pi and th < np.pi/2:
+                    row.append([0.5, 0.5, 0])
+            if r < 0 and np.linalg.norm(row[-1]) != 0:
+                row[-1] = [(1 - row[-1][k]) for k in range(3)]
+                       
         pict.append(np.array(row))
     pict = cv2.cvtColor(np.array(pict, np.float32), 1)
     # pict = Image.fromarray(np.array(pict), 'RGB')
@@ -179,25 +200,23 @@ def gdsc(Motion):
     Dia.inb_diagr([-10, 10], 1000, ax)
     plt.show()
 
-start = time.time()
-Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1000, 9, 400, 400)
-end = time.time()
-print(end - start)
 
-start = time.time()
-Motion2, Photo2, H2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 400, 400)
-end = time.time()
-print(end - start)
+Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1000, 9, 400, 400)
+#Motion2, Photo2, H2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 400, 400)
+
 
 plot_1D(H1)
-plot_1D(H2)
+#plot_1D(H2)
 
 gdsc(Motion1)
-gdsc(Motion2)
+#gdsc(Motion2)
 
 cv2.imshow('DNeg', Photo1)
-cv2.imshow('DNeg', Photo2)
-
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 cv2.waitKey(1)
+
+#cv2.imshow('DNeg', Photo2)
+#cv2.waitKey(0)
+#cv2.destroyAllWindows()
+#cv2.waitKey(1)
