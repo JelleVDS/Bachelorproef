@@ -85,7 +85,7 @@ def inn_mom_DNeg(S_n, S_sph):
     p_th = r*S_n[2]
     return np.array([p_l, p_phi, p_th])
 
-def Simulate_DNeg(integrator, h, N, loc, Nz = 14**2, Ny = 14**2):
+def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
     #h: stepsize, N amount of steps, Ni pixels,
     #loc: initial position
@@ -95,7 +95,7 @@ def Simulate_DNeg(integrator, h, N, loc, Nz = 14**2, Ny = 14**2):
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
-    q = np.zeros(p.shape) + loc
+    q = np.transpose(np.tile(q0, (400,400,1)), (2,0,1)) + h*0.1
     Motion = [[p, q]]
     H = []
     start = time.time()
@@ -106,7 +106,7 @@ def Simulate_DNeg(integrator, h, N, loc, Nz = 14**2, Ny = 14**2):
     H.append(DNeg_Ham(p, q))
     end = time.time()
     print(end - start)    
-    pict = Make_Pict_RB(q, 40, 0.5, h)
+    pict = Make_Pict_RB(q, 40, 1, h)
     #print(pict)
     return np.array(Motion), pict , H
 
@@ -179,7 +179,7 @@ def gdsc(Motion):
     S_c = screen_cart(Ny_s, Nz_s)
     S_cT = np.transpose(S_c, (2,0,1))
     n = np.linalg.norm(S_cT, axis=0)
-    n_u, ind = np.unique(n, return_inverse=True)
+    n_u, ind = np. unique(n, return_inverse=True)
     N = n_u.size
     
     p, q = Sample
@@ -200,10 +200,9 @@ def gdsc(Motion):
     Dia.inb_diagr([-10, 10], 1000, ax)
     plt.show()
 
-
-Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1000, 9, 400, 400)
+#initial position in spherical coord
+Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1000, np.array([9, 3, 2]), 400, 400)
 #Motion2, Photo2, H2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 400, 400)
-
 
 plot_1D(H1)
 #plot_1D(H2)
