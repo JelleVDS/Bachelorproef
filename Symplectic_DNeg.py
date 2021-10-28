@@ -1,5 +1,16 @@
 import numpy as np
 
+def sum_subd(A):
+    # A 2D matrix such that the lengt of sides have int squares
+    Ny, Nz =  A.shape
+    Ny_s = int(np.sqrt(Ny))
+    Nz_s = int(np.sqrt(Nz))
+    B = np.zeros((Ny_s, Nz_s))
+    for i in range(Ny_s):
+        for j in range(Nz_s):
+            B[i,j] = np.sum(A[Ny_s*i:Ny_s*(i+1), Nz_s*j:Nz_s*(j+1)])
+    return B
+
 def Sympl_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
     # input: p: matrix with coordinates in momentum space on first row,
     # q: matrix with coordinates in configuration space on first row,
@@ -29,7 +40,7 @@ def Sympl_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
     H1 = p_l**2
     H2 = p_th**2*rec_r_2
     H3 = p_phi**2/sin2*rec_r_2
-    H = 0.5*np.sum((H1 + H2 + H3))
+    H = 0.5*sum_subd((H1 + H2 + H3))
 
     l_h = p_l
     phi_h = b/sin1**2*rec_r_2

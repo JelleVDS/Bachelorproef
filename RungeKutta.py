@@ -19,22 +19,17 @@ def dneg_dr_dl(y, M=0.43/1.42953):
     dr_dl = 2/np.pi*np.arctan(x)
     return dr_dl
 
-def DNeg_Ham(p, q , M = 0.43/1.42953, rho = 1):
-    #input: p, q  3D matrices as defined earlier
-    #output: 1D matrix, hamiltonian defined in each timestep
-    
-    p_l, p_phi, p_th = p
-    l, phi, theta = q
-    r = dneg_r(l, M, rho)
-    rec_r = 1/r
-    rec_r_2 = rec_r**2
-    sin1 = np.sin(theta)
-    sin2 = sin1**2
 
-    H1 = p_l**2
-    H2 = p_th**2*rec_r_2
-    H3 = p_phi**2/sin2*rec_r_2
-    return 0.5*np.sum((H1 + H2 + H3))
+def sum_subd(A):
+    # A 2D matrix such that the lengt of sides have int squares
+    Ny, Nz =  A.shape
+    Ny_s = int(np.sqrt(Ny))
+    Nz_s = int(np.sqrt(Nz))
+    B = np.zeros((Ny_s, Nz_s))
+    for i in range(Ny_s):
+        for j in range(Nz_s):
+            B[i,j] = np.sum(A[Ny_s*i:Ny_s*(i+1), Nz_s*j:Nz_s*(j+1)])
+    return B
 
 def runge_kutta(p, q, Cst, h):
     """
@@ -57,7 +52,7 @@ def runge_kutta(p, q, Cst, h):
     H1 = p_l**2
     H2 = p_th**2*rec_r_2
     H3 = p_phi**2/sin2*rec_r_2
-    H = 0.5*np.sum((H1 + H2 + H3))
+    H = 0.5*sum_subd((H1 + H2 + H3))
 
     #Using the hamiltonian equations of motion
     dl_dt       = p_l
