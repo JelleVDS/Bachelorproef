@@ -277,7 +277,7 @@ def gdsc(Motion):
             ij = i + Ny_s*j
             cl_i =cl[ind[ij]]
             ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
-            
+
     ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
     Dia.inb_diagr([-10, 10], 1000, ax)
     plt.show()
