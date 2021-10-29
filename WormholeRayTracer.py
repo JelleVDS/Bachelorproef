@@ -174,6 +174,7 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
 
 def Make_Pict_RB(q, q0, N_a, R, w):
     # input: q: matrix with coordinates in configuration space on first row
+    #        q0: starting position (unused)
     #        3D matrix (2D matrix of rays each containing a coordinate in colorspace)
     #        N_a: subdivision angles
     #        N_r: linspace radius to form grid
@@ -190,14 +191,16 @@ def Make_Pict_RB(q, q0, N_a, R, w):
             r = q[0][j,i]
             phi = q[1][j,i]
             th = q[2][j,i]
+            # Defines point on spherical grid
             on_shell = (np.abs(R - np.mod(r, R)) < R*w) or (np.abs(np.mod(r, R) - R) < R*w)
             on_phi = np.any(np.abs(phi - Par_phi) < 2*np.pi/N_a*w)
             on_theta = np.any(np.abs(th - Par_th) < np.pi/N_a*w)
-
+            # Boolean conditions for when rays lands on spherical grid
             if (on_phi and on_theta) or (on_phi and on_shell) or (on_shell and on_theta):
                 row.append(np.array([0, 0, 0]))
 
             else:
+                # colors based on sign azimutha angle and inclination 
                 if phi > np.pi and th > np.pi/2:
                     row.append([0, 1, 0])
                 elif phi > np.pi and th < np.pi/2:
@@ -208,6 +211,7 @@ def Make_Pict_RB(q, q0, N_a, R, w):
                     row.append([0.5, 0.5, 0])
 
             if r < 0 and np.linalg.norm(row[-1]) != 0:
+                # invert color for points on oposite side of wormhole
                 row[-1] = [(1 - row[-1][k]) for k in range(3)]
 
         pict.append(np.array(row))
@@ -220,9 +224,10 @@ def Make_Pict_RB(q, q0, N_a, R, w):
 
 
 def sum_subd(A):
-    # A 2D matrix such that the length of sides have int squares
-
+    # input: A: 2D matrix such that the length of sides have int squares
+    # sums subdivisions of array
     Ny, Nz =  A.shape
+    # subdivides by making blocks with the square of the original lenght as size
     Ny_s = int(np.sqrt(Ny))
     Nz_s = int(np.sqrt(Nz))
     B = np.zeros((Ny_s, Nz_s))
@@ -258,8 +263,8 @@ def DNeg_Ham(p, q , M = 0.43/1.42953, rho = 1):
 
 
 def plot_Ham(H):
-    #input: 3D array containing energy of each ray over time
-
+    #input: 3D array containing energy of each ray over time, advancement in time on first row
+    # plot de hamiltoniaan van de partities van de rays
     Ny, Nz =  H[0].shape
     cl, ind = ray_spread(Ny, Nz)
 
@@ -277,7 +282,9 @@ def plot_Ham(H):
 
 
 def ray_spread(Ny, Nz):
-
+    # input: Ny: amount of horizontal arrays, Nz: amount of vertical arrays
+    # output: cl: color based on deviation of the norm of a ray compared to direction obeserver is facing
+            #ind ind of original ray mapped to colormap
     S_c = screen_cart(Ny, Nz)
     S_cT = np.transpose(S_c, (2,0,1))
     n = np.linalg.norm(S_cT, axis=0)
@@ -289,20 +296,21 @@ def ray_spread(Ny, Nz):
 
 
 def gdsc(Motion):
-    # input: 5D matrix, the elements being [p, q] with p, q as defined earlier
+    # input: Motion: 5D matrix, the elements being [p, q] with p, q as defined earlier
 
     Motion = np.transpose(Motion, (1,2,0,3,4))
 
     Ny, Nz =  Motion[0][0][0].shape
     Ny_s = int(np.sqrt(Ny))
     Nz_s = int(np.sqrt(Nz))
+    # Samples a uniform portion of the rays for visualisation
     Sample = Motion[:, :, :, 1::Ny_s, 1::Nz_s]
     cl, ind = ray_spread(Ny_s, Nz_s)
 
     p, q = Sample
     p_l, p_phi, p_th = p
     l, phi, theta = q
-
+    # caluclates coordinates in inbedded space
     ax = plt.figure().add_subplot(projection='3d')
     X, Y = dneg_r(l)*np.cos(phi), dneg_r(l)*np.sin(phi)
     Z = -Dia.imb_f_int(l)
@@ -314,6 +322,7 @@ def gdsc(Motion):
             ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
 
     ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
+    # adds surface
     Dia.inb_diagr([-10, 10], 1000, ax)
     plt.show()
 
