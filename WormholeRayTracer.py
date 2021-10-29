@@ -148,7 +148,7 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
-    q1 = np.transpose(np.tile(q0, (400,400,1)), (2,0,1)) + h*0.1
+    q1 = np.transpose(np.tile(q0, (Nz, Ny,1)), (2,0,1)) + h*0.1
     q = q1
     Motion = [[p, q]]
     H = []
@@ -180,8 +180,8 @@ def Make_Pict_RB(q, q0, N_a, R, w):
     #        N_r: linspace radius to form grid
     #        h: width lines grid
 
-    Par_phi = np.arange(0, 2*np.pi, N_a-1)
-    Par_th = np.arange(0, np.pi, N_a-1)
+    Par_phi = np.linspace(0, 2*np.pi, N_a-1)
+    Par_th = np.linspace(0, np.pi, N_a-1)
     pict = []
 
     for j in range(len(q[0])):
@@ -230,16 +230,16 @@ def sum_subd(A):
     # input: A: 2D matrix such that the length of sides have int squares
     #sums subdivisions of array
 
-    Ny, Nz =  A.shape
+    Nz, Ny =  A.shape
 
     # subdivides by making blocks with the square of the original lenght as size
-    Ny_s = int(np.sqrt(Ny))
-    Nz_s = int(np.sqrt(Nz))
-    B = np.zeros((Ny_s, Nz_s))
+    Ny_s = int(np.sqrt(Nz))
+    Nz_s = int(np.sqrt(Ny))
+    B = np.zeros((Nz_s, Ny_s))
 
-    for i in range(Ny_s):
-        for j in range(Nz_s):
-            B[i,j] = np.sum(A[Ny_s*i:Ny_s*(i+1), Nz_s*j:Nz_s*(j+1)])
+    for i in range(Nz_s):
+        for j in range(Ny_s):
+            B[i,j] = np.sum(A[Nz_s*i:Nz_s*(i+1), Ny_s*j:Ny_s*(j+1)])
 
     return B
 
@@ -274,13 +274,13 @@ def plot_Ham(H):
     # plot de hamiltoniaan van de partities van de rays
 
     Ny, Nz =  H[0].shape
-    cl, ind = ray_spread(Ny, Nz)
+    cl, ind = ray_spread(Nz, Ny)
 
     fig, ax = plt.subplots()
     x = np.arange(len(H))
-    for i in range(Ny):
-        for j in range(Nz):
-            ij = i + Ny*j
+    for i in range(Nz):
+        for j in range(Ny):
+            ij = i + Nz*j
             cl_i =cl[ind[ij]]
             ax.plot(x, H[:,i,j], color=cl_i)
     ax.set_yscale("log")
@@ -289,11 +289,11 @@ def plot_Ham(H):
     plt.show()
 
 
-def ray_spread(Ny, Nz):
+def ray_spread(Nz, Ny):
     # input: Ny: amount of horizontal arrays, Nz: amount of vertical arrays
     # output: cl: color based on deviation of the norm of a ray compared to direction obeserver is facing
             #ind ind of original ray mapped to colormap
-    S_c = screen_cart(Ny, Nz)
+    S_c = screen_cart(Nz, Ny)
     S_cT = np.transpose(S_c, (2,0,1))
     n = np.linalg.norm(S_cT, axis=0)
     n_u, ind = np. unique(n, return_inverse=True)
@@ -309,12 +309,12 @@ def gdsc(Motion):
     Motion = np.transpose(Motion, (1,2,0,3,4))
 
     Ny, Nz =  Motion[0][0][0].shape
-    Ny_s = int(np.sqrt(Ny))
-    Nz_s = int(np.sqrt(Nz))
+    Ny_s = int(np.sqrt(Nz))
+    Nz_s = int(np.sqrt(Ny))
 
     # Samples a uniform portion of the rays for visualisation
-    Sample = Motion[:, :, :, 1::Ny_s, 1::Nz_s]
-    cl, ind = ray_spread(Ny_s, Nz_s)
+    Sample = Motion[:, :, :, 1::Nz_s, 1::Ny_s]
+    cl, ind = ray_spread(Nz_s, Ny_s)
 
     p, q = Sample
     p_l, p_phi, p_th = p
@@ -324,9 +324,9 @@ def gdsc(Motion):
     X, Y = dneg_r(l)*np.cos(phi), dneg_r(l)*np.sin(phi)
     Z = Dia.imb_f_int(l)
 
-    for i in range(Ny_s):
-        for j in range(Nz_s):
-            ij = i + Ny_s*j
+    for i in range(Nz_s):
+        for j in range(Ny_s):
+            ij = i + Nz_s*j
             cl_i =cl[ind[ij]]
             ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
     # adds surface
@@ -336,8 +336,8 @@ def gdsc(Motion):
 
 
 #initial position in spherical coord
-Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 400, 400)
-#Motion2, Photo2, H2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 400, 400)
+Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 20**2, 20**2)
+#Motion2, Photo2, H2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
 
 plot_Ham(H1)
 #plot_Ham(H2)
