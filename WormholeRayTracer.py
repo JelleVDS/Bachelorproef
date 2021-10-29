@@ -137,7 +137,9 @@ def inn_mom_DNeg(S_n, S_sph):
 
 def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
-    #       h: stepsize, N amount of steps, Ni pixels,
+    #       h: stepsize
+    #       N amount of steps
+    #       Ni pixels
     #       loc: initial position
     #output: motion: 5D matrix the elements being [p, q] p, q being 3D matrices
     #        pict: 3D matrix (2D grid containg value in colorspace)
@@ -171,7 +173,7 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
 
 def Make_Pict_RB(q, N_a, N_r, h):
     # input: q: matrix with coordinates in configuration space on first row
-    # ouput: 3D matrix (2D matrix of rays each containing a coordinate in colorspace)
+    #        3D matrix (2D matrix of rays each containing a coordinate in colorspace)
     #        N_a: subdivision angles
     #        N_r: linspace radius to form grid
     #        h: width lines grid
@@ -185,7 +187,7 @@ def Make_Pict_RB(q, N_a, N_r, h):
 
         for i in range(len(q[0][0])):
             r = q[0][j,i]
-            phi = q[1][j,i] 
+            phi = q[1][j,i]
             th = q[2][j,i]
             on_shell = np.abs(r - np.mod(r, N_r)) < h
             on_phi = np.any(np.abs(phi - Par_phi) < h)
@@ -217,14 +219,17 @@ def Make_Pict_RB(q, N_a, N_r, h):
 
 
 def sum_subd(A):
-    # A 2D matrix such that the lengt of sides have int squares
+    # A 2D matrix such that the length of sides have int squares
+
     Ny, Nz =  A.shape
     Ny_s = int(np.sqrt(Ny))
     Nz_s = int(np.sqrt(Nz))
     B = np.zeros((Ny_s, Nz_s))
+
     for i in range(Ny_s):
         for j in range(Nz_s):
             B[i,j] = np.sum(A[Ny_s*i:Ny_s*(i+1), Nz_s*j:Nz_s*(j+1)])
+
     return B
 
 
@@ -249,13 +254,14 @@ def DNeg_Ham(p, q , M = 0.43/1.42953, rho = 1):
     H3 = p_phi**2/sin2*rec_r_2
 
     return 0.5*sum_subd((H1 + H2 + H3))
- 
+
 
 def plot_Ham(H):
     #input: 3D array containing energy of each ray over time
+
     Ny, Nz =  H[0].shape
     cl, ind = ray_spread(Ny, Nz)
-    
+
     fig, ax = plt.subplots()
     x = np.arange(len(H))
     for i in range(Ny):
@@ -264,19 +270,22 @@ def plot_Ham(H):
             cl_i =cl[ind[ij]]
             ax.plot(x, H[:,i,j], color=cl_i)
     ax.set_yscale("log")
-    ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")        
+    ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
     plt.tight_layout()
     plt.show()
 
 
 def ray_spread(Ny, Nz):
+
     S_c = screen_cart(Ny, Nz)
     S_cT = np.transpose(S_c, (2,0,1))
     n = np.linalg.norm(S_cT, axis=0)
     n_u, ind = np. unique(n, return_inverse=True)
     N = n_u.size
     cl = plt.cm.viridis(np.arange(N)/N)
+
     return cl, ind
+
 
 def gdsc(Motion):
     # input: 5D matrix, the elements being [p, q] with p, q as defined earlier
@@ -321,4 +330,3 @@ gdsc(Motion1)
 path = os.getcwd()
 cv2.imwrite(path + '/DNeg Sympl.png', 255*Photo1)
 #cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
-
