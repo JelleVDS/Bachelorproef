@@ -191,10 +191,12 @@ def Make_Pict_RB(q, q0, N_a, R, w):
             r = q[0][j,i]
             phi = q[1][j,i]
             th = q[2][j,i]
+
             # Defines point on spherical grid
             on_shell = (np.abs(R - np.mod(r, R)) < R*w) or (np.abs(np.mod(r, R) - R) < R*w)
             on_phi = np.any(np.abs(phi - Par_phi) < 2*np.pi/N_a*w)
             on_theta = np.any(np.abs(th - Par_th) < np.pi/N_a*w)
+
             # Boolean conditions for when rays lands on spherical grid
 
             if (on_phi and on_theta) or (on_phi and on_shell) or (on_shell and on_theta):
@@ -226,9 +228,10 @@ def Make_Pict_RB(q, q0, N_a, R, w):
 
 def sum_subd(A):
     # input: A: 2D matrix such that the length of sides have int squares
-    # sums subdivisions of array
+    #sums subdivisions of array
 
     Ny, Nz =  A.shape
+
     # subdivides by making blocks with the square of the original lenght as size
     Ny_s = int(np.sqrt(Ny))
     Nz_s = int(np.sqrt(Nz))
@@ -308,6 +311,7 @@ def gdsc(Motion):
     Ny, Nz =  Motion[0][0][0].shape
     Ny_s = int(np.sqrt(Ny))
     Nz_s = int(np.sqrt(Nz))
+
     # Samples a uniform portion of the rays for visualisation
     Sample = Motion[:, :, :, 1::Ny_s, 1::Nz_s]
     cl, ind = ray_spread(Ny_s, Nz_s)
