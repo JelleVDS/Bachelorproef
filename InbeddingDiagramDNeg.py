@@ -33,6 +33,7 @@ def inb_diagr(I, N , ax = None): #input: I: interval, N: #points, output: plot
     L, PHI = np.meshgrid(dneg_r(l), phi) # radius is r(l)
 
     #tile want symmetrisch voor rotaties, onafhankelijk van phi
+    # Inegraal voor Z richting zoals gedifinieerd in de paper
     Z = np.tile(imb_f_int(l), (N, 1)) #z(l)
 
     X, Y = L*np.cos(PHI), L*np.sin(PHI)

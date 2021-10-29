@@ -313,7 +313,7 @@ def gdsc(Motion):
     # caluclates coordinates in inbedded space
     ax = plt.figure().add_subplot(projection='3d')
     X, Y = dneg_r(l)*np.cos(phi), dneg_r(l)*np.sin(phi)
-    Z = -Dia.imb_f_int(l)
+    Z = Dia.imb_f_int(l)
 
     for i in range(Ny_s):
         for j in range(Nz_s):
