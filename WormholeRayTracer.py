@@ -148,7 +148,8 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
-    q = np.transpose(np.tile(q0, (400,400,1)), (2,0,1)) + h*0.1
+    q1 = np.transpose(np.tile(q0, (400,400,1)), (2,0,1)) + h*0.1
+    q = q1
     Motion = [[p, q]]
     H = []
 
@@ -165,21 +166,21 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
 
     print(end - start)
 
-    pict = Make_Pict_RB(q, 40, 1, h)
+    pict = Make_Pict_RB(q, q1, 200, 0.5, 0.2)
     #print(pict)
 
     return np.array(Motion), pict , np.array(H)
 
 
-def Make_Pict_RB(q, N_a, N_r, h):
+def Make_Pict_RB(q, q0, N_a, R, w):
     # input: q: matrix with coordinates in configuration space on first row
     #        3D matrix (2D matrix of rays each containing a coordinate in colorspace)
     #        N_a: subdivision angles
     #        N_r: linspace radius to form grid
     #        h: width lines grid
 
-    Par_phi = np.arange(0, 2*np.pi, N_a-1)
-    Par_th = np.arange(0, np.pi, N_a-1)
+    Par_phi = np.linspace(0, 2*np.pi, N_a-1)
+    Par_th = np.linspace(0, np.pi, N_a-1)
     pict = []
 
     for j in range(len(q[0])):
@@ -189,9 +190,9 @@ def Make_Pict_RB(q, N_a, N_r, h):
             r = q[0][j,i]
             phi = q[1][j,i]
             th = q[2][j,i]
-            on_shell = np.abs(r - np.mod(r, N_r)) < h
-            on_phi = np.any(np.abs(phi - Par_phi) < h)
-            on_theta = np.any(np.abs(th - Par_th) < h)
+            on_shell = (np.abs(R - np.mod(r, R)) < R*w) or (np.abs(np.mod(r, R) - R) < R*w)
+            on_phi = np.any(np.abs(phi - Par_phi) < 2*np.pi/N_a*w)
+            on_theta = np.any(np.abs(th - Par_th) < np.pi/N_a*w)
 
             if (on_phi and on_theta) or (on_phi and on_shell) or (on_shell and on_theta):
                 row.append(np.array([0, 0, 0]))
@@ -318,7 +319,7 @@ def gdsc(Motion):
 
 
 #initial position in spherical coord
-Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([9, 3, 2]), 400, 400)
+Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 400, 400)
 #Motion2, Photo2, H2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 400, 400)
 
 plot_Ham(H1)
