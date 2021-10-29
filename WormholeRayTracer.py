@@ -148,8 +148,7 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
-    q1 = np.transpose(np.tile(q0, (400,400,1)), (2,0,1)) + h*0.1
-    q = q1
+    q = np.transpose(np.tile(q0, (400,400,1)), (2,0,1)) + h*0.1
     Motion = [[p, q]]
     H = []
 
@@ -166,22 +165,21 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
 
     print(end - start)
 
-    pict = Make_Pict_RB(q, q1, 200, 0.5, 0.2)
+    pict = Make_Pict_RB(q, 40, 1, h)
     #print(pict)
 
     return np.array(Motion), pict , np.array(H)
 
 
-def Make_Pict_RB(q, q0, N_a, R, w):
+def Make_Pict_RB(q, N_a, N_r, h):
     # input: q: matrix with coordinates in configuration space on first row
-    #        q0: starting position (unused)
     #        3D matrix (2D matrix of rays each containing a coordinate in colorspace)
     #        N_a: subdivision angles
     #        N_r: linspace radius to form grid
     #        h: width lines grid
 
-    Par_phi = np.linspace(0, 2*np.pi, N_a-1)
-    Par_th = np.linspace(0, np.pi, N_a-1)
+    Par_phi = np.arange(0, 2*np.pi, N_a-1)
+    Par_th = np.arange(0, np.pi, N_a-1)
     pict = []
 
     for j in range(len(q[0])):
@@ -191,16 +189,14 @@ def Make_Pict_RB(q, q0, N_a, R, w):
             r = q[0][j,i]
             phi = q[1][j,i]
             th = q[2][j,i]
-            # Defines point on spherical grid
-            on_shell = (np.abs(R - np.mod(r, R)) < R*w) or (np.abs(np.mod(r, R) - R) < R*w)
-            on_phi = np.any(np.abs(phi - Par_phi) < 2*np.pi/N_a*w)
-            on_theta = np.any(np.abs(th - Par_th) < np.pi/N_a*w)
-            # Boolean conditions for when rays lands on spherical grid
+            on_shell = np.abs(r - np.mod(r, N_r)) < h
+            on_phi = np.any(np.abs(phi - Par_phi) < h)
+            on_theta = np.any(np.abs(th - Par_th) < h)
+
             if (on_phi and on_theta) or (on_phi and on_shell) or (on_shell and on_theta):
                 row.append(np.array([0, 0, 0]))
 
             else:
-                # colors based on sign azimutha angle and inclination 
                 if phi > np.pi and th > np.pi/2:
                     row.append([0, 1, 0])
                 elif phi > np.pi and th < np.pi/2:
@@ -211,7 +207,6 @@ def Make_Pict_RB(q, q0, N_a, R, w):
                     row.append([0.5, 0.5, 0])
 
             if r < 0 and np.linalg.norm(row[-1]) != 0:
-                # invert color for points on oposite side of wormhole
                 row[-1] = [(1 - row[-1][k]) for k in range(3)]
 
         pict.append(np.array(row))
@@ -224,10 +219,9 @@ def Make_Pict_RB(q, q0, N_a, R, w):
 
 
 def sum_subd(A):
-    # input: A: 2D matrix such that the length of sides have int squares
-    # sums subdivisions of array
+    # A 2D matrix such that the length of sides have int squares
+
     Ny, Nz =  A.shape
-    # subdivides by making blocks with the square of the original lenght as size
     Ny_s = int(np.sqrt(Ny))
     Nz_s = int(np.sqrt(Nz))
     B = np.zeros((Ny_s, Nz_s))
@@ -259,12 +253,14 @@ def DNeg_Ham(p, q , M = 0.43/1.42953, rho = 1):
     H2 = p_th**2*rec_r_2
     H3 = p_phi**2/sin2*rec_r_2
 
-    return 0.5*sum_subd((H1 + H2 + H3))
+    H = 0.5*sum_subd((H1 + H2 + H3))
+
+    return H
 
 
 def plot_Ham(H):
-    #input: 3D array containing energy of each ray over time, advancement in time on first row
-    # plot de hamiltoniaan van de partities van de rays
+    #input: 3D array containing energy of each ray over time
+
     Ny, Nz =  H[0].shape
     cl, ind = ray_spread(Ny, Nz)
 
@@ -282,9 +278,7 @@ def plot_Ham(H):
 
 
 def ray_spread(Ny, Nz):
-    # input: Ny: amount of horizontal arrays, Nz: amount of vertical arrays
-    # output: cl: color based on deviation of the norm of a ray compared to direction obeserver is facing
-            #ind ind of original ray mapped to colormap
+
     S_c = screen_cart(Ny, Nz)
     S_cT = np.transpose(S_c, (2,0,1))
     n = np.linalg.norm(S_cT, axis=0)
@@ -296,21 +290,20 @@ def ray_spread(Ny, Nz):
 
 
 def gdsc(Motion):
-    # input: Motion: 5D matrix, the elements being [p, q] with p, q as defined earlier
+    # input: 5D matrix, the elements being [p, q] with p, q as defined earlier
 
     Motion = np.transpose(Motion, (1,2,0,3,4))
 
     Ny, Nz =  Motion[0][0][0].shape
     Ny_s = int(np.sqrt(Ny))
     Nz_s = int(np.sqrt(Nz))
-    # Samples a uniform portion of the rays for visualisation
     Sample = Motion[:, :, :, 1::Ny_s, 1::Nz_s]
     cl, ind = ray_spread(Ny_s, Nz_s)
 
     p, q = Sample
     p_l, p_phi, p_th = p
     l, phi, theta = q
-    # caluclates coordinates in inbedded space
+
     ax = plt.figure().add_subplot(projection='3d')
     X, Y = dneg_r(l)*np.cos(phi), dneg_r(l)*np.sin(phi)
     Z = Dia.imb_f_int(l)
@@ -322,13 +315,12 @@ def gdsc(Motion):
             ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
 
     ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
-    # adds surface
     Dia.inb_diagr([-10, 10], 1000, ax)
     plt.show()
 
 
 #initial position in spherical coord
-Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 400, 400)
+Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([9, 3, 2]), 400, 400)
 #Motion2, Photo2, H2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 400, 400)
 
 plot_Ham(H1)
