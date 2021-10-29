@@ -5,6 +5,7 @@ import RungeKutta as rk
 import InbeddingDiagramDNeg as Dia
 import Symplectic_DNeg as Smpl
 import time
+import os
 #import scipy as sc
 
 
@@ -184,7 +185,7 @@ def Make_Pict_RB(q, N_a, N_r, h):
 
         for i in range(len(q[0][0])):
             r = q[0][j,i]
-            phi = q[1][j,i]
+            phi = q[1][j,i] 
             th = q[2][j,i]
             on_shell = np.abs(r - np.mod(r, N_r)) < h
             on_phi = np.any(np.abs(phi - Par_phi) < h)
@@ -317,12 +318,7 @@ plot_Ham(H1)
 gdsc(Motion1)
 #gdsc(Motion2)
 
-cv2.imshow('DNeg', Photo1)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-cv2.waitKey(1)
+path = os.getcwd()
+cv2.imwrite(path + '/DNeg Sympl.png', 255*Photo1)
+#cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
 
-#cv2.imshow('DNeg', Photo2)
-#cv2.waitKey(0)
-#cv2.destroyAllWindows()
-#cv2.waitKey(1)
