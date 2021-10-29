@@ -5,6 +5,7 @@ import RungeKutta as rk
 import InbeddingDiagramDNeg as Dia
 import Symplectic_DNeg as Smpl
 import time
+import os
 #import scipy as sc
 
 
@@ -165,7 +166,7 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     pict = Make_Pict_RB(q, 40, 1, h)
     #print(pict)
 
-    return np.array(Motion), pict , H
+    return np.array(Motion), pict , np.array(H)
 
 
 def Make_Pict_RB(q, N_a, N_r, h):
@@ -184,7 +185,7 @@ def Make_Pict_RB(q, N_a, N_r, h):
 
         for i in range(len(q[0][0])):
             r = q[0][j,i]
-            phi = q[1][j,i]
+            phi = q[1][j,i] 
             th = q[2][j,i]
             on_shell = np.abs(r - np.mod(r, N_r)) < h
             on_phi = np.any(np.abs(phi - Par_phi) < h)
@@ -215,6 +216,18 @@ def Make_Pict_RB(q, N_a, N_r, h):
     return pict
 
 
+def sum_subd(A):
+    # A 2D matrix such that the lengt of sides have int squares
+    Ny, Nz =  A.shape
+    Ny_s = int(np.sqrt(Ny))
+    Nz_s = int(np.sqrt(Nz))
+    B = np.zeros((Ny_s, Nz_s))
+    for i in range(Ny_s):
+        for j in range(Nz_s):
+            B[i,j] = np.sum(A[Ny_s*i:Ny_s*(i+1), Nz_s*j:Nz_s*(j+1)])
+    return B
+
+
 def DNeg_Ham(p, q , M = 0.43/1.42953, rho = 1):
     #input: p, q  3D matrices as defined earlier
     #output: 1D matrix, hamiltonian defined in each timestep
@@ -235,17 +248,35 @@ def DNeg_Ham(p, q , M = 0.43/1.42953, rho = 1):
     H2 = p_th**2*rec_r_2
     H3 = p_phi**2/sin2*rec_r_2
 
-    return 0.5*np.sum((H1 + H2 + H3))
+    return 0.5*sum_subd((H1 + H2 + H3))
+ 
 
-
-def plot_1D(y):
-
+def plot_Ham(H):
+    #input: 3D array containing energy of each ray over time
+    Ny, Nz =  H[0].shape
+    cl, ind = ray_spread(Ny, Nz)
+    
     fig, ax = plt.subplots()
-    x = np.arange(len(y))
-    ax.plot(x, y)
+    x = np.arange(len(H))
+    for i in range(Ny):
+        for j in range(Nz):
+            ij = i + Ny*j
+            cl_i =cl[ind[ij]]
+            ax.plot(x, H[:,i,j], color=cl_i)
+    ax.set_yscale("log")
+    ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")        
     plt.tight_layout()
     plt.show()
 
+
+def ray_spread(Ny, Nz):
+    S_c = screen_cart(Ny, Nz)
+    S_cT = np.transpose(S_c, (2,0,1))
+    n = np.linalg.norm(S_cT, axis=0)
+    n_u, ind = np. unique(n, return_inverse=True)
+    N = n_u.size
+    cl = plt.cm.viridis(np.arange(N)/N)
+    return cl, ind
 
 def gdsc(Motion):
     # input: 5D matrix, the elements being [p, q] with p, q as defined earlier
@@ -256,11 +287,7 @@ def gdsc(Motion):
     Ny_s = int(np.sqrt(Ny))
     Nz_s = int(np.sqrt(Nz))
     Sample = Motion[:, :, :, 1::Ny_s, 1::Nz_s]
-    S_c = screen_cart(Ny_s, Nz_s)
-    S_cT = np.transpose(S_c, (2,0,1))
-    n = np.linalg.norm(S_cT, axis=0)
-    n_u, ind = np. unique(n, return_inverse=True)
-    N = n_u.size
+    cl, ind = ray_spread(Ny_s, Nz_s)
 
     p, q = Sample
     p_l, p_phi, p_th = p
@@ -269,8 +296,6 @@ def gdsc(Motion):
     ax = plt.figure().add_subplot(projection='3d')
     X, Y = dneg_r(l)*np.cos(phi), dneg_r(l)*np.sin(phi)
     Z = -Dia.imb_f_int(l)
-
-    cl = plt.cm.viridis(np.arange(N)/N)
 
     for i in range(Ny_s):
         for j in range(Nz_s):
@@ -284,21 +309,16 @@ def gdsc(Motion):
 
 
 #initial position in spherical coord
-Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1000, np.array([9, 3, 2]), 400, 400)
+Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([9, 3, 2]), 400, 400)
 #Motion2, Photo2, H2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 400, 400)
 
-plot_1D(H1)
-#plot_1D(H2)
+plot_Ham(H1)
+#plot_Ham(H2)
 
 gdsc(Motion1)
 #gdsc(Motion2)
 
-cv2.imshow('DNeg', Photo1)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-cv2.waitKey(1)
+path = os.getcwd()
+cv2.imwrite(path + '/DNeg Sympl.png', 255*Photo1)
+#cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
 
-#cv2.imshow('DNeg', Photo2)
-#cv2.waitKey(0)
-#cv2.destroyAllWindows()
-#cv2.waitKey(1)
