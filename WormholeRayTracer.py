@@ -166,6 +166,7 @@ def Simulate_DNeg(integrator, h, N, Nz = 400, Ny = 400):
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
+<<<<<<< Updated upstream
     q = np.zeros(p.shape) + h*0.1
 
     for i in range(N): #Integration
@@ -179,6 +180,42 @@ def Make_Pict_RB(q):
     3D matrix (2D matrix of rays each containing a coordinate in colorspace)
     RGB based on sign(l), q = (l, phi, theta)
     """
+=======
+    q1 = np.transpose(np.tile(q0, (Nz, Ny,1)), (2,0,1)) + h*0.1
+    q = q1
+    Motion = [[p, q]]
+    H = []
+
+    start = time.time()
+
+    # Integration
+    for i in range(N):
+        p, q , H_i = integrator(p, q, Cst, h)
+        # Motion.append([p, q])
+        # H.append(H_i)
+    # H.append(DNeg_Ham(p, q))
+
+    end = time.time()
+
+    print(end - start)
+
+    pict = Make_Pict_RB(q, q1, 200, 0.5, 0.2)
+    #print(pict)
+
+    return np.array(Motion), pict , np.array(H)
+
+
+def Make_Pict_RB(q, q0, N_a, R, w):
+    # input: q: matrix with coordinates in configuration space on first row
+    #        q0: starting position (unused)
+    #        3D matrix (2D matrix of rays each containing a coordinate in colorspace)
+    #        N_a: subdivision angles
+    #        N_r: linspace radius to form grid
+    #        h: width lines grid
+
+    Par_phi = np.linspace(0, 2*np.pi, N_a-1)
+    Par_th = np.linspace(0, np.pi, N_a-1)
+>>>>>>> Stashed changes
     pict = []
     for j in range(len(q[0])):
         row = []
@@ -186,6 +223,7 @@ def Make_Pict_RB(q):
             if q[0][j,i] <= 0:
                 row.append([255, 0, 0])
             else:
+<<<<<<< Updated upstream
                 row.append([0, 0, 255])
         pict.append(row)
     return cv2.cvtColor(np.array(pict, np.float32), 1)
@@ -197,3 +235,151 @@ cv2.imshow('DNeg', Photo)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 cv2.waitKey(1)
+=======
+                # colors based on sign azimutha angle and inclination
+                if phi > np.pi and th > np.pi/2:
+                    row.append([0, 1, 0])
+                elif phi > np.pi and th < np.pi/2:
+                    row.append([1, 0, 0])
+                elif phi < np.pi and th > np.pi/2:
+                    row.append([0, 0, 1])
+                elif phi < np.pi and th < np.pi/2:
+                    row.append([0.5, 0.5, 0])
+
+            if r < 0 and np.linalg.norm(row[-1]) != 0:
+                # invert color for points on oposite side of wormhol
+                row[-1] = [(1 - row[-1][k]) for k in range(3)]
+
+        pict.append(np.array(row))
+
+    pict = cv2.cvtColor(np.array(pict, np.float32), 1)
+
+    # pict = Image.fromarray(np.array(pict), 'RGB')
+
+    return pict
+
+
+def sum_subd(A):
+    # input: A: 2D matrix such that the length of sides have int squares
+    #sums subdivisions of array
+
+    Nz, Ny =  A.shape
+
+    # subdivides by making blocks with the square of the original lenght as size
+    Ny_s = int(np.sqrt(Nz))
+    Nz_s = int(np.sqrt(Ny))
+    B = np.zeros((Nz_s, Ny_s))
+
+    for i in range(Nz_s):
+        for j in range(Ny_s):
+            B[i,j] = np.sum(A[Nz_s*i:Nz_s*(i+1), Ny_s*j:Ny_s*(j+1)])
+
+    return B
+
+
+def DNeg_Ham(p, q , M = 0.43/1.42953, rho = 1):
+    #input: p, q  3D matrices as defined earlier
+    #output: 1D matrix, hamiltonian defined in each timestep
+
+    p_l, p_phi, p_th = p
+    l, phi, theta = q
+
+    # defining r(l):
+    r = dneg_r(l, M, rho)
+
+    rec_r = 1/r
+    rec_r_2 = rec_r**2
+    sin1 = np.sin(theta)
+    sin2 = sin1**2
+
+    # defining hamiltonian
+    H1 = p_l**2
+    H2 = p_th**2*rec_r_2
+    H3 = p_phi**2/sin2*rec_r_2
+
+    H = 0.5*sum_subd((H1 + H2 + H3))
+
+    return H
+
+
+def plot_Ham(H):
+    #input: 3D array containing energy of each ray over time, advancement in time on first row
+    # plot de hamiltoniaan van de partities van de rays
+
+    Ny, Nz =  H[0].shape
+    cl, ind = ray_spread(Nz, Ny)
+
+    fig, ax = plt.subplots()
+    x = np.arange(len(H))
+    for i in range(Nz):
+        for j in range(Ny):
+            ij = i + Nz*j
+            cl_i =cl[ind[ij]]
+            ax.plot(x, H[:,i,j], color=cl_i)
+    ax.set_yscale("log")
+    ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
+    plt.tight_layout()
+    plt.show()
+
+
+def ray_spread(Nz, Ny):
+    # input: Ny: amount of horizontal arrays, Nz: amount of vertical arrays
+    # output: cl: color based on deviation of the norm of a ray compared to direction obeserver is facing
+            #ind ind of original ray mapped to colormap
+    S_c = screen_cart(Nz, Ny)
+    S_cT = np.transpose(S_c, (2,0,1))
+    n = np.linalg.norm(S_cT, axis=0)
+    n_u, ind = np. unique(n, return_inverse=True)
+    N = n_u.size
+    cl = plt.cm.viridis(np.arange(N)/N)
+
+    return cl, ind
+
+
+def gdsc(Motion):
+    # input: Motion: 5D matrix, the elements being [p, q] with p, q as defined earlier
+
+    Motion = np.transpose(Motion, (1,2,0,3,4))
+
+    Ny, Nz =  Motion[0][0][0].shape
+    Ny_s = int(np.sqrt(Nz))
+    Nz_s = int(np.sqrt(Ny))
+
+    # Samples a uniform portion of the rays for visualisation
+    Sample = Motion[:, :, :, 1::Nz_s, 1::Ny_s]
+    cl, ind = ray_spread(Nz_s, Ny_s)
+
+    p, q = Sample
+    p_l, p_phi, p_th = p
+    l, phi, theta = q
+    # caluclates coordinates in inbedded space
+    ax = plt.figure().add_subplot(projection='3d')
+    X, Y = dneg_r(l)*np.cos(phi), dneg_r(l)*np.sin(phi)
+    Z = Dia.imb_f_int(l)
+
+    for i in range(Nz_s):
+        for j in range(Ny_s):
+            ij = i + Nz_s*j
+            cl_i =cl[ind[ij]]
+            ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
+    # adds surface
+    ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
+    Dia.inb_diagr([-10, 10], 1000, ax)
+    plt.show()
+
+
+#initial position in spherical coord
+# Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 20**2, 20**2)
+Motion2, Photo2, H2 = Simulate_DNeg(rk.runge_kutta, 0.01, 5000, np.array([5, 3, 2]), 20**3, 20**3)
+
+# plot_Ham(H1)
+#plot_Ham(H2)
+
+# gdsc(Motion1)
+#gdsc(Motion2)
+
+path = os.getcwd()
+# print(path)
+# cv2.imwrite(path + '/DNeg_Sympl.png', 255*Photo1)
+cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
+>>>>>>> Stashed changes
