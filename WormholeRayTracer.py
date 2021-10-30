@@ -159,21 +159,37 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     # Integration
     for i in range(N):
         p, q , H_i = integrator(p, q, Cst, h)
-        Motion.append([p, q])
-        H.append(H_i)
-    H.append(DNeg_Ham(p, q))
+        # Motion.append([p, q])
+        # H.append(H_i)
+    # H.append(DNeg_Ham(p, q))
 
     end = time.time()
 
     print(end - start)
 
-    pict = Make_Pict_RB(q, q1, 200, 0.5, 0.2)
+    pict = Make_Pict_RB(q)
     #print(pict)
 
     return np.array(Motion), pict , np.array(H)
 
 
-def Make_Pict_RB(q, q0, N_a, R, w):
+def Make_Pict_RB(q):
+    # input: q: matrix with coordinates in configuration space on first row ouput:
+    # 3D matrix (2D matrix of rays each containing a coordinate in colorspace)
+    # RGB based on sign(l), q = (l, phi, theta)
+    pict = []
+    for j in range(len(q[0])):
+        row = []
+        for i in range(len(q[0][0])):
+            if q[0][j,i] <= 0:
+                row.append([255, 0, 0])
+            else:
+                row.append([0, 0, 255])
+        pict.append(row)
+    return cv2.cvtColor(np.array(pict, np.float32), 1)
+
+
+def Make_Pict_RGBP(q, q0, N_a, R, w):
     # input: q: matrix with coordinates in configuration space on first row
     #        q0: starting position (unused)
     #        3D matrix (2D matrix of rays each containing a coordinate in colorspace)
@@ -337,15 +353,15 @@ def gdsc(Motion):
 
 
 #initial position in spherical coord
-Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 20**2, 20**2)
+Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([1, 3, 2]), 20**2, 20**2)
 #Motion2, Photo2, H2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
 
-plot_Ham(H1)
-#plot_Ham(H2)
+# plot_Ham(H1)
+# plot_Ham(H2)
 
-gdsc(Motion1)
-#gdsc(Motion2)
+# gdsc(Motion1)
+# gdsc(Motion2)
 
 path = os.getcwd()
-cv2.imwrite(path + '/DNeg Sympl.png', 255*Photo1)
-#cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
+cv2.imwrite(os.path.join(path, 'DNeg Sympl_min5.png'), 255*Photo1)
+# cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
