@@ -199,11 +199,7 @@ def diff_equations(l, theta, phi, p_l, p_th, p_phi):
     diffeq = [dl_dt, dphi_dt, dtheta_dt, dpl_dt, np.zeros(dl_dt.shape), dpth_dt]
     return diffeq
 
-<<<<<<< HEAD
 def simulate_raytracer (h, N, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
-=======
-def simulate_buildin(methode = 'RK45',  h, N, q0, Nz = 14**2, Ny = 14**2):
->>>>>>> 46f0dc3dc800a4136d130e547b5aa02c289368b7
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
