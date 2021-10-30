@@ -41,6 +41,8 @@ def Sympl_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
     H2 = p_th**2*rec_r_2
     H3 = p_phi**2/sin2*rec_r_2
     H = 0.5*sum_subd((H1 + H2 + H3))
+    B2_C = sum_subd(p_th**2 + p_phi**2/sin2)
+    b_C = sum_subd(p_phi)
 
     l_h = p_l
     phi_h = b/sin1**2*rec_r_2
@@ -68,4 +70,4 @@ def Sympl_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
         phi + phi_h*h + phi_h2*h_2,
         theta + theta_h*h + theta_h2*h_2
         ],
-        H)
+        [H, b_C, B2_C])

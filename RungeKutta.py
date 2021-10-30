@@ -53,6 +53,8 @@ def runge_kutta(p, q, Cst, h):
     H2 = p_th**2*rec_r_2
     H3 = p_phi**2/sin2*rec_r_2
     H = 0.5*sum_subd((H1 + H2 + H3))
+    B2_C = sum_subd(p_th**2 + p_phi**2/sin2)
+    b_C = sum_subd(p_phi)
 
     #Using the hamiltonian equations of motion
     dl_dt       = p_l
@@ -118,4 +120,4 @@ def runge_kutta(p, q, Cst, h):
     p = p + np.multiply(k1[3:],(h/6)) + np.multiply(k2[3:],(h/3)) + np.multiply(k3[3:],(h/3)) + np.multiply(k4[3:],(h/6))
     q = q + np.multiply(k1[:3],(h/6)) + np.multiply(k2[:3],(h/3)) + np.multiply(k3[:3],(h/3)) + np.multiply(k4[:3],(h/6))
 
-    return [p, q, H]
+    return [p, q, [H, b_C, B2_C]]
