@@ -7,6 +7,7 @@ import InbeddingDiagramDNeg as Dia
 import Symplectic_DNeg as Smpl
 import time
 import os
+import scipy.integrate as integr
 #import scipy as sc
 
 
@@ -172,6 +173,55 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
 
     return np.array(Motion), pict , np.array(CM)
 
+def diff_equations(l, theta, phi, p_l, p_th, p_phi):
+    r = dneg_r(l)
+    rec_r = 1/r
+    rec_r_2 = rec_r**2
+    rec_r_3 = rec_r_2*rec_r
+    sin1 = np.sin(theta)
+    cos1 = np.cos(theta)
+    sin2 = sin1**2
+    sin3 = sin1*sin2
+    H1 = p_l**2
+    H2 = p_th**2*rec_r_2
+    H3 = p_phi**2/sin2*rec_r_2
+    H = 0.5*sum_subd((H1 + H2 + H3))
+    B2_C = sum_subd(p_th**2 + p_phi**2/sin2)
+    b_C = sum_subd(p_phi)
+
+    #Using the hamiltonian equations of motion
+    dl_dt       = p_l
+    dtheta_dt   = p_th * rec_r_2
+    dphi_dt     = b / sin2 * rec_r_2
+    dpl_dt      = B**2 * (dneg_dr_dl(l)) * rec_r_3
+    dpth_dt     = b ** 2 * cos1 / sin3 * rec_r_2
+
+    diffeq = [dl_dt, dphi_dt, dtheta_dt, dpl_dt, np.zeros(dl_dt.shape), dpth_dt]
+    return diffeq
+
+def simulate_buildin(methode = 'RK45',  h, N, q0, Nz = 14**2, Ny = 14**2:
+    """
+    Solves the differential equations using a build in solver (solve_ivp) with
+    specified method.
+    Input:  - methode: method used for solving the ivp (standerd runge-kutta of fourth order)
+            - h: stepsize
+            - N: number of steps
+            - q0: initial position of the camera
+            - Nz: number of vertical pixels
+            - Ny: number of horizontal pixels
+
+    Output:
+    """
+    S_c = screen_cart(Nz, Ny)
+    S_cT = np.transpose(S_c, (2,0,1))
+    S_sph = cart_Sph(S_cT)
+    p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
+    p1, p2, p3 = p
+    q1, q2, q3 = q0
+    initial_values = [q1, q3, q2, p1, p3, p2]
+    t_end = N*h
+
+    sol = integr.solve_ivp(diff_equations, [0, t_end], initial_values, method = methode )
 
 def Make_Pict_RB(q):
     # input: q: matrix with coordinates in configuration space on first row ouput:
@@ -359,14 +409,14 @@ def gdsc(Motion):
 
 #initial position in spherical coord
 Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 20**2, 20**2)
-#Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
-
-plot_CM(CM1, ['H', 'b', 'B**2'])
-#plot_CM(CM2, ['H', 'b', 'B**2'])
+# Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
+np.save('ray_solved', Photo1)
+# plot_CM(CM1, ['H', 'b', 'B**2'])
+# plot_CM(CM2, ['H', 'b', 'B**2'])
 
 # gdsc(Motion1)
 # gdsc(Motion2)
 
-path = os.getcwd()
-cv2.imwrite(os.path.join(path, 'DNeg Sympl.png'), 255*Photo1)
+# path = os.getcwd()
+# cv2.imwrite(os.path.join(path, 'DNeg Sympl.png'), 255*Photo1)
 # cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
