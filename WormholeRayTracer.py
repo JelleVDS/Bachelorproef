@@ -152,16 +152,16 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     q1 = np.transpose(np.tile(q0, (Nz, Ny,1)), (2,0,1)) + h*0.1
     q = q1
     Motion = [[p, q]]
-    H = []
+    CM = []
 
     start = time.time()
 
     # Integration
     for i in range(N):
-        p, q , H_i = integrator(p, q, Cst, h)
-        # Motion.append([p, q])
-        # H.append(H_i)
-    # H.append(DNeg_Ham(p, q))
+        p, q , CM_i = integrator(p, q, Cst, h)
+        Motion.append([p, q])
+        CM.append(CM_i)
+    CM.append(DNeg_CM(p, q))
 
     end = time.time()
 
@@ -170,7 +170,7 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     pict = Make_Pict_RB(q)
     #print(pict)
 
-    return np.array(Motion), pict , np.array(H)
+    return np.array(Motion), pict , np.array(CM)
 
 
 def Make_Pict_RB(q):
@@ -261,9 +261,9 @@ def sum_subd(A):
     return B
 
 
-def DNeg_Ham(p, q , M = 0.43/1.42953, rho = 1):
+def DNeg_CM(p, q , M = 0.43/1.42953, rho = 1):
     #input: p, q  3D matrices as defined earlier
-    #output: 1D matrix, hamiltonian defined in each timestep
+    #output: 1D matrix, constants of Motion defined in each timestep
 
     p_l, p_phi, p_th = p
     l, phi, theta = q
@@ -282,26 +282,31 @@ def DNeg_Ham(p, q , M = 0.43/1.42953, rho = 1):
     H3 = p_phi**2/sin2*rec_r_2
 
     H = 0.5*sum_subd((H1 + H2 + H3))
+    B2_C = sum_subd(p_th**2 + p_phi**2/sin2)
+    b_C = sum_subd(p_phi)
 
-    return H
+    return [H, b_C, B2_C]
 
 
-def plot_Ham(H):
+def plot_CM(CM, Name):
     #input: 3D array containing energy of each ray over time, advancement in time on first row
-    # plot de hamiltoniaan van de partities van de rays
+    # plot the constants of motion over the partition of the rays
 
-    Ny, Nz =  H[0].shape
+    Ny, Nz =  CM[0,0].shape
+    CM = np.transpose(CM, (1,0,2,3))
+    N_C = len(CM)
     cl, ind = ray_spread(Nz, Ny)
 
-    fig, ax = plt.subplots()
-    x = np.arange(len(H))
-    for i in range(Nz):
-        for j in range(Ny):
-            ij = i + Nz*j
-            cl_i =cl[ind[ij]]
-            ax.plot(x, H[:,i,j], color=cl_i)
-    ax.set_yscale("log")
-    ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
+    fig, ax = plt.subplots(N_C, 1)
+    x = np.arange(len(CM[0]))
+    for k in range(N_C):
+        for i in range(Nz):
+            for j in range(Ny):
+                ij = i + Nz*j
+                cl_i =cl[ind[ij]]
+                ax[k].plot(x, CM[k,:,i,j], color=cl_i)
+        ax[k].set_yscale("log")
+        ax[k].set_title(Name[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
     plt.tight_layout()
     plt.show()
 
@@ -353,15 +358,15 @@ def gdsc(Motion):
 
 
 #initial position in spherical coord
-Motion1, Photo1, H1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([1, 3, 2]), 20**2, 20**2)
-#Motion2, Photo2, H2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
+Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 20**2, 20**2)
+#Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
 
-# plot_Ham(H1)
-# plot_Ham(H2)
+plot_CM(CM1, ['H', 'b', 'B**2'])
+#plot_CM(CM2, ['H', 'b', 'B**2'])
 
 # gdsc(Motion1)
 # gdsc(Motion2)
 
 path = os.getcwd()
-cv2.imwrite(os.path.join(path, 'DNeg Sympl_min5.png'), 255*Photo1)
+cv2.imwrite(os.path.join(path, 'DNeg Sympl.png'), 255*Photo1)
 # cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
