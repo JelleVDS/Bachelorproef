@@ -174,6 +174,9 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     return np.array(Motion), pict , np.array(CM)
 
 def diff_equations(l, theta, phi, p_l, p_th, p_phi):
+    """
+    Defines the differential equations from the hamiltonian.
+    """
     r = dneg_r(l)
     rec_r = 1/r
     rec_r_2 = rec_r**2
