@@ -446,7 +446,7 @@ def gdsc(Motion):
 # plot_CM(CM2, ['H', 'b', 'B**2'])
 
 start = time.time()
-sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK23')
+sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
 end = time.time()
 print('Tijdsduur = ' + str(end-start))
 print(sol)
