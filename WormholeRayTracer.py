@@ -160,20 +160,22 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     # Integration
     for i in range(N):
         p, q , CM_i = integrator(p, q, Cst, h)
-        Motion.append([p, q])
-        CM.append(CM_i)
-    CM.append(DNeg_CM(p, q))
-
+        # Motion.append([p, q])
+        # CM.append(CM_i)
+    # CM.append(DNeg_CM(p, q))
+    Motion.append([p, q])
     end = time.time()
 
     print(end - start)
 
     pict = Make_Pict_RB(q)
     #print(pict)
-
+    # pict = 0
     return np.array(Motion), pict , np.array(CM)
 
-def diff_equations(l, theta, phi, p_l, p_th, p_phi):
+
+def diff_equations(t, variables):
+    l, theta, phi, p_l, p_th, p_phi = variables
     r = dneg_r(l)
     rec_r = 1/r
     rec_r_2 = rec_r**2
@@ -185,9 +187,9 @@ def diff_equations(l, theta, phi, p_l, p_th, p_phi):
     H1 = p_l**2
     H2 = p_th**2*rec_r_2
     H3 = p_phi**2/sin2*rec_r_2
-    H = 0.5*sum_subd((H1 + H2 + H3))
-    B2_C = sum_subd(p_th**2 + p_phi**2/sin2)
-    b_C = sum_subd(p_phi)
+    # H = 0.5*sum_subd((H1 + H2 + H3))
+    B = p_th**2 + p_phi**2/sin2
+    b = p_phi
 
     #Using the hamiltonian equations of motion
     dl_dt       = p_l
@@ -210,8 +212,8 @@ def simulate_raytracer(h, N, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
             - q0: initial position of the camera
             - Nz: number of vertical pixels
             - Ny: number of horizontal pixels
-
-    Output:
+    Output: - sol.y: a matrix with each row containing the initial and end value
+              for one ray: [l, phi, theta, p_l, p_phi, p_theta]
     """
     S_c = screen_cart(Nz, Ny)
     S_cT = np.transpose(S_c, (2,0,1))
@@ -219,11 +221,37 @@ def simulate_raytracer(h, N, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
     p1, p2, p3 = p
     q1, q2, q3 = q0
-    initial_values = [q1, q3, q2, p1, p3, p2]
     t_end = N*h
+    endpos = []
+    endmom = []
+    print(len(p1))
+    print(len(p1[0]))
 
-    sol = integr.solve_ivp(diff_equations, [0, t_end], initial_values, method = methode)
-    return sol
+    for teller1 in range(0, len(p1)):
+        row_pos = []
+        row_mom = []
+        for teller2 in range(0, len(p1[0])):
+
+            start_it = time.time()
+            initial_values = np.array([q1, q3, q2, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2]])
+            sol         = integr.solve_ivp(diff_equations, [0, t_end], initial_values, method = methode, t_eval=[0, t_end])
+            #Reads out the data from the solution
+            l_end       = sol.y[0][-1]
+            phi_end     = sol.y[1][-1]
+            theta_end   = sol.y[2][-1]
+            pl_end      = sol.y[3][-1]
+            pphi_end    = sol.y[4][-1]
+            ptheta_end  = sol.y[5][-1]
+            # adds local solution to row
+            row_pos.append([l_end, phi_end, theta_end])
+            row_mom.append([pl_end, pphi_end, ptheta_end])
+            end_it = time.time()
+            duration = end_it - start_it
+            print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
+        # adds row to matrix
+        endpos.append(row_pos)
+        endmom.append(row_mom)
+    return endpos, endmom
 
 
 def Make_Pict_RB(q):
@@ -411,12 +439,18 @@ def gdsc(Motion):
 
 
 #initial position in spherical coord
-Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 20**2, 20**2)
+# Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 20**2, 20**2)
 # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
-np.save('ray_solved', Photo1)
+# np.save('ray_solved', Motion1)
 # plot_CM(CM1, ['H', 'b', 'B**2'])
 # plot_CM(CM2, ['H', 'b', 'B**2'])
 
+start = time.time()
+sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK23')
+end = time.time()
+print('Tijdsduur = ' + str(end-start))
+print(sol)
+np.save('raytracer2', sol)
 # gdsc(Motion1)
 # gdsc(Motion2)
 
