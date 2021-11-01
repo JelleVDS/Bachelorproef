@@ -161,13 +161,13 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     # Integration
     for i in range(N):
         p, q , CM_i = integrator(p, q, Cst, h)
-        Motion.append([p, q])
-        CM.append(CM_i)
+        #Motion.append([p, q])
+        #CM.append(CM_i)
         # change parameters grid here
         Grid.append(Grid_constr(q, 8, 1, 0.01))
        
-    CM.append(DNeg_CM(p, q))
-    Motion.append([p, q])
+    #CM.append(DNeg_CM(p, q))
+    #Motion.append([p, q])
     end = time.time()
 
     print(end - start)
@@ -457,25 +457,25 @@ def gdsc(Motion):
     Dia.inb_diagr([-10, 10], 1000, ax)
     plt.show()
 
-
-#initial position in spherical coord
-Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 20**2, 20**2)
-# Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
-# np.save('ray_solved', Motion1)
-plot_CM(CM1, ['H', 'b', 'B**2'])
-# plot_CM(CM2, ['H', 'b', 'B**2'])
-
-#start = time.time()
-#sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
-#end = time.time()
-#print('Tijdsduur = ' + str(end-start))
-#print(sol)
-#np.save('raytracer2', sol)`
-
-end_pos = Motion1[-1, 1]
-gdsc(Motion1)
-# gdsc(Motion2)
-
-path = os.getcwd()
-cv2.imwrite(os.path.join(path, 'DNeg Sympl.png'), 255*Photo1)
-# cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
+if __name__ == '__main__':
+    #initial position in spherical coord
+    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 20**2, 20**2)
+    # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
+    # np.save('ray_solved', Motion1)
+    #plot_CM(CM1, ['H', 'b', 'B**2'])
+    # plot_CM(CM2, ['H', 'b', 'B**2'])
+    
+    #start = time.time()
+    #sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
+    #end = time.time()
+    #print('Tijdsduur = ' + str(end-start))
+    #print(sol)
+    #np.save('raytracer2', sol)`
+    
+    #end_pos = Motion1[-1, 1]
+    #gdsc(Motion1)
+    # gdsc(Motion2)
+    
+    #path = os.getcwd()
+    #cv2.imwrite(os.path.join(path, 'DNeg Sympl.png'), 255*Photo1)
+    # cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
