@@ -137,12 +137,13 @@ def inn_mom_DNeg(S_n, S_sph):
     return p
 
 
-def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
+def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2, mode = 0):
     #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
     #       h: stepsize
     #       N amount of steps
     #       Ni pixels
-    #       loc: initial position
+    #       q0: initial position
+    #       mode: disable data collection
     #output: motion: 5D matrix the elements being [p, q] p, q being 3D matrices
     #        pict: 3D matrix (2D grid containg value in colorspace)
 
@@ -161,13 +162,15 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     # Integration
     for i in range(N):
         p, q , CM_i = integrator(p, q, Cst, h)
-        #Motion.append([p, q])
-        #CM.append(CM_i)
+        if mode == 0:
+            Motion.append([p, q])
+            CM.append(CM_i)
         # change parameters grid here
-        Grid.append(Grid_constr(q, 8, 1, 0.01))
-       
-    #CM.append(DNeg_CM(p, q))
-    #Motion.append([p, q])
+        Grid.append(Grid_constr(q, 11, 1, 0.01))
+    
+    if mode == 0:
+        CM.append(DNeg_CM(p, q))
+        Motion.append([p, q])
     end = time.time()
 
     print(end - start)
@@ -389,7 +392,7 @@ def DNeg_CM(p, q , M = 0.43/1.42953, rho = 1):
     return [H, b_C, B2_C]
 
 
-def plot_CM(CM, Name):
+def plot_CM(CM, Label, name, path):
     #input: 3D array containing energy of each ray over time, advancement in time on first row
     # plot the constants of motion over the partition of the rays
 
@@ -407,9 +410,10 @@ def plot_CM(CM, Name):
                 cl_i =cl[ind[ij]]
                 ax[k].plot(x, CM[k,:,i,j], color=cl_i)
         ax[k].set_yscale("log")
-        ax[k].set_title(Name[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
+        ax[k].set_title(Label[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
     plt.tight_layout()
-    plt.show()
+    plt.savefig(os.path.join(path, name), dpi=150)
+    #plt.show()
 
 
 def ray_spread(Nz, Ny):
@@ -426,7 +430,7 @@ def ray_spread(Nz, Ny):
     return cl, ind
 
 
-def gdsc(Motion):
+def gdsc(Motion, name, path):
     # input: Motion: 5D matrix, the elements being [p, q] with p, q as defined earlier
 
     Motion = np.transpose(Motion, (1,2,0,3,4))
@@ -455,27 +459,30 @@ def gdsc(Motion):
     # adds surface
     ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
     Dia.inb_diagr([-10, 10], 1000, ax)
-    plt.show()
+    plt.savefig(os.path.join(path, name), dpi=150)
+    #plt.show()
 
 if __name__ == '__main__':
+    path = os.getcwd()
     #initial position in spherical coord
-    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 20**2, 20**2)
+    #for radius in range(1, 15):
+    initial_q = np.array([5, np.pi, np.pi/2])
+    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, initial_q, 20**2, 20**2)
     # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
     # np.save('ray_solved', Motion1)
-    #plot_CM(CM1, ['H', 'b', 'B**2'])
+    plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(initial_q)+".png", path)
     # plot_CM(CM2, ['H', 'b', 'B**2'])
-    
+        
     #start = time.time()
     #sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
     #end = time.time()
     #print('Tijdsduur = ' + str(end-start))
     #print(sol)
     #np.save('raytracer2', sol)`
-    
-    #end_pos = Motion1[-1, 1]
-    #gdsc(Motion1)
+        
+    end_pos = Motion1[-1, 1]
+    gdsc(Motion1, "Pictures/geodesics DNeg Sympl"+str(initial_q)+".png", path)
     # gdsc(Motion2)
-    
-    #path = os.getcwd()
-    #cv2.imwrite(os.path.join(path, 'DNeg Sympl.png'), 255*Photo1)
-    # cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
+        
+    cv2.imwrite(os.path.join(path, "Pictures/Image 3DGr DNeg Sympl"+str(initial_q)+".png"), 255*Photo1)
+    #cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
