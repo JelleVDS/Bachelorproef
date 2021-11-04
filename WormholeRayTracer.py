@@ -46,14 +46,14 @@ def dneg_d2r_dl2(y, M=0.43/1.42953):
     return d2r_dl2
 
 
-def screen_cart(Nz, Ny, L = 1):
+def screen_cart(Nz, Ny, L1 = 1, L2=2):
      # input: Nz amount of pixels on vertical side screen
      #        Ny amount pixels horizontal side screen ,
      #        L = physical width and lenght of the screen.
      # output: 3D matrix (2d matrix of each ray/pixel, containing its location in 3D space)
 
-    My = np.linspace(-L/2, L/2, Ny)
-    Mz = np.linspace(-L/2, L/2, Nz)
+    My = np.linspace(-L2/2, L2/2, Ny)
+    Mz = np.linspace(-L1/2, L1/2, Nz)
 
     #cartesian product My X Mz
     arr = []
@@ -234,7 +234,7 @@ def simulate_raytracer(h, N, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
 
             start_it = time.time()
             initial_values = np.array([q1, q3, q2, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2]])
-            sol         = integr.solve_ivp(diff_equations, [0, t_end], initial_values, method = methode, t_eval=[0, t_end])
+            sol            = integr.solve_ivp(diff_equations, [0, -2], initial_values, method = methode, t_eval=[-2])
             #Reads out the data from the solution
             l_end       = sol.y[0][-1]
             phi_end     = sol.y[1][-1]
@@ -439,21 +439,29 @@ def gdsc(Motion):
 
 
 #initial position in spherical coord
-# Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 20**2, 20**2)
-# Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
+
+
 # np.save('ray_solved', Motion1)
 # plot_CM(CM1, ['H', 'b', 'B**2'])
 # plot_CM(CM2, ['H', 'b', 'B**2'])
 
 start = time.time()
-sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
+sol = simulate_raytracer(0.01, 100, [14, 0, 0], Nz = 20**2, Ny = 20**2, methode = 'RK45')
+# Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([14, 3, 2]), 20**2, 20**2)
+# Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1500, np.array([14.5, 0, 0]), 1024, 2048)
+# np.save('ray_solved', Motion2)
 end = time.time()
-print('Tijdsduur = ' + str(end-start))
-print(sol)
-np.save('raytracer2', sol)
+print('TijdsduurRK = ' + str(end-start))
+# start = time.time()
+# # sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
+# Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 20**2, 20**2)
+# end = time.time()
+# print('TijdsduurSP = ' + str(end-start))
+# # print(sol)
+# np.save('raytracer2', sol)
 # gdsc(Motion1)
 # gdsc(Motion2)
 
 # path = os.getcwd()
-# cv2.imwrite(os.path.join(path, 'DNeg Sympl.png'), 255*Photo1)
+# cv2.imwrite(os.path.join(path, 'DNeg Sympl__14_0_0.png'), 255*Photo2)
 # cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)

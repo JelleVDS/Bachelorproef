@@ -5,9 +5,10 @@ import numpy as np
 import os
 
 # Inladen foto's
+print('Reading in pictures...')
 img_saturn    = cv2.imread('Saturn.jpg')
 img_gargantua = cv2.imread('wormhole.jpg')
-
+# print(img_gargantua.shape)
 # print(len(img_saturn))
 
 #Maak lijsten om dichtste te zoeken
@@ -54,6 +55,16 @@ def photo_to_sphere(photo):
 
     return dict
 
+# ph = photo_to_sphere(img_saturn)
+# im = np.array([])
+# for element in ph:
+#     print(element)
+#     theta, phi = element
+#     im[theta][phi] = ph[element]
+#
+# path = os.getcwd()
+# cv2.imwrite(os.path.join(path, 'test.png'), im)
+
 
 def decide_universe(photo, saturn, gargantua):
     """
@@ -73,11 +84,12 @@ def decide_universe(photo, saturn, gargantua):
             else:
                 pixel = ray_to_saturn((photo[-1][1][1][rij][kolom], photo[-1][1][2][rij][kolom]), saturn)
 
-            row.append(np.array(pixel))
+            [[R, G, B]] = pixel
+            row.append([R, G, B])
 
         picture.append(np.array(row))
-    img = cv2.cvtColor(np.array(picture, np.float32), 1)
-    return img
+    # img = cv2.cvtColor(np.array(picture, np.float32), 1)
+    return np.array(picture)
 
 def distance(x, position):
     """
@@ -101,7 +113,8 @@ def ray_to_saturn(position, saturn):
     phi_near = min(phi_list, key=lambda x: distance(x, p))
     nearest = (theta_near, phi_near)
     # print(nearest)
-    RGB = saturn.get(nearest)
+    RGB = saturn[nearest]
+    # print(RGB)
 
     return RGB
 
@@ -117,23 +130,32 @@ def ray_to_gar(position, gargantua):
     theta_near = min(theta_list, key=lambda x: distance(x, t))
     phi_near = min(phi_list, key=lambda x: distance(x, p))
     nearest = (theta_near, phi_near)
-    RGB = gargantua.get(nearest)
+    RGB = gargantua[nearest]
+    # print(RGB)
 
     return RGB
 
 
 saturn      = photo_to_sphere(img_saturn)
-np.savez('sat', saturn)
+# np.savez('sat', saturn)
+print('Saturn image loaded.')
 gargantua   = photo_to_sphere(img_gargantua)
-np.savez('gar', gargantua)
+# np.savez('gar', gargantua)
+print('Gargantua image loaded.')
 
 raytracer = np.load('ray_solved.npy')
+print('Ray tracer solution loaded.')
 # print(raytracer)
 # saturn = np.load('sat.npz')
 # gargantua = np.load('gar.npz')
+print('Starting image placing process...')
 pic = decide_universe(raytracer, saturn, gargantua)
-np.savez('picInterstellar', pic)
 # print(pic)
-
+# print(pic.shape)
+print('Image placing completed.')
+# np.savez('picInterstellar', pic)
+# print(pic)
+print('Saving picture')
 path = os.getcwd()
-cv2.imwrite(os.path.join(path, 'InterstellarWormhole.png'), 255*pic)
+cv2.imwrite(os.path.join(path, 'InterstellarWormhole_14_5.png'), pic)
+print('Picture saved')

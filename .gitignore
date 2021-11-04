@@ -1,3 +1,11 @@
 
 .DS_Store
 .ipynb_checkpoints/DNeg symplectic integrator coeffiecients-checkpoint.ipynb
+.ray_solved.npy
+.Saturn.jpg
+.*.png
+.*.jpg
+.*.npy
+.*.npz
+.HorizontalLine.py
+.fourcolor.png
