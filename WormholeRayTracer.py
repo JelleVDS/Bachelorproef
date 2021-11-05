@@ -137,7 +137,7 @@ def inn_mom_DNeg(S_n, S_sph):
     return p
 
 
-def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2, mode = 0):
+def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mode = 0):
     #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
     #       h: stepsize
     #       N amount of steps
@@ -155,7 +155,7 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2, mode = 0):
     q = q1
     Motion = [[p, q]]
     CM = []
-    Grid = []
+    Grid = [np.zeros((Nz, Ny), dtype=bool)]
 
     start = time.time()
 
@@ -165,8 +165,9 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2, mode = 0):
         if mode == 0:
             Motion.append([p, q])
             CM.append(CM_i)
-        # change parameters grid here
-        Grid.append(Grid_constr(q, 11, 1, 0.01))
+        if Gr_D == '3D':
+            # change parameters grid here
+            Grid.append(Grid_constr_3D(q, 11, 1, 0.01, Grid[-1]))
     
     if mode == 0:
         CM.append(DNeg_CM(p, q))
@@ -176,7 +177,10 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2, mode = 0):
     print(end - start)
 
     #pict = Make_Pict_RB(q)
-    Grid = np.any(np.array(Grid), axis=0)
+    if Gr_D == '3D':
+        Grid = np.any(np.array(Grid), axis=0)
+    else: 
+        Grid = Grid_constr_2D(q, 11, 1, 0.05)
     pict =  Make_Pict_RGBP(q, Grid)
     #print(pict)
     # pict = 0
@@ -278,20 +282,13 @@ def Make_Pict_RB(q):
         pict.append(row)
     return cv2.cvtColor(np.array(pict, np.float32), 1)
 
-def Grid_constr(q, N_a, R, w):
-    # input: q: matrix with coordinates in configuration space on first row
-    #        N_a: subdivision angles
-    #        N_r: linspace radius to form grid
-    #        w: ratio 
-    #output: 2D boolean array
+
+def Grid_constr_2D(q, N_a, R, w):
     Nz, Ny =  q[0].shape
     r, phi, theta = q
     
     Par_phi = np.linspace(0, 2*np.pi, N_a-1)
     Par_th = np.linspace(0, np.pi, N_a-1)
-    
-    # Defines point on spherical grid
-    on_shell = (np.abs(R - np.mod(r, R)) < R*w) | (np.abs(np.mod(r, R) - R) < R*w)
     
     on_phi = np.any(
         np.abs(phi.reshape(1,Nz,Ny) - 
@@ -302,9 +299,41 @@ def Grid_constr(q, N_a, R, w):
         np.abs(theta.reshape(1,Nz,Ny) - 
                np.transpose(np.tile(Par_th, (Nz, Ny,1)), (2,0,1)))
         < np.pi/N_a*w,  axis=0)
+    
+    return on_phi | on_theta
+    
 
+def Grid_constr_3D(q, N_a, R, w, Sl_old = None):
+    # input: q: matrix with coordinates in configuration space on first row
+    #        N_a: subdivision angles
+    #        N_r: linspace radius to form grid
+    #        w: ratio 
+    #output: 2D boolean array
+    Nz, Ny =  q[0].shape
+    if Sl_old == None:
+        Sl_old = np.zeros((Nz, Ny), dtype=bool)
+    grid_slice = np.zeros((Nz, Ny), dtype=bool)
+    Sl_old_inv = ~Sl_old
+    r, phi, theta = q
+    
+    Par_phi = np.linspace(0, 2*np.pi, N_a-1)
+    Par_th = np.linspace(0, np.pi, N_a-1)
+    
+    # Defines point on spherical grid
+    rr = r[Sl_old_inv]
+    M = len(rr)
+    on_shell = (np.abs(R - np.mod(rr, R)) < R*w) | (np.abs(np.mod(rr, R) - R) < R*w)
+    
+    on_phi = np.any(
+        np.abs(phi[Sl_old_inv].reshape(1,M) - np.tile(Par_phi, (M,1)).T)
+        < 2*np.pi/N_a*w, axis=0)
+    
+    on_theta = np.any(
+        np.abs(theta[Sl_old_inv].reshape(1,M) - np.tile(Par_th, (M,1)).T)
+        < np.pi/N_a*w,  axis=0)
+    
     # Boolean conditions for when rays lands on spherical grid
-    grid_slice = (on_phi & on_theta) | (on_phi & on_shell) | (on_shell & on_theta)
+    grid_slice[Sl_old_inv] = (on_phi & on_theta) | (on_phi & on_shell) | (on_shell & on_theta)
     return grid_slice
  
 
@@ -318,12 +347,12 @@ def Make_Pict_RGBP(q, Grid):
         row = []
 
         for i in range(len(q[0][0])):
-            r = q[0][j,i]
-            phi = q[1][j,i]
-            th = q[2][j,i]
             if Grid[j,i] == True:
                 row.append([0,0,0])
             else:
+                r = q[0][j,i]
+                phi = q[1][j,i]
+                th = q[2][j,i]
                 # colors based on sign azimutha angle and inclination
                 if phi > np.pi and th > np.pi/2:
                     row.append([0, 1, 0])
@@ -467,7 +496,7 @@ if __name__ == '__main__':
     #initial position in spherical coord
     #for radius in range(1, 15):
     initial_q = np.array([5, np.pi, np.pi/2])
-    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, initial_q, 20**2, 20**2)
+    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, initial_q, 20**2, 20**2, '2D')
     # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
     # np.save('ray_solved', Motion1)
     plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(initial_q)+".png", path)
@@ -484,5 +513,5 @@ if __name__ == '__main__':
     gdsc(Motion1, "Pictures/geodesics DNeg Sympl"+str(initial_q)+".png", path)
     # gdsc(Motion2)
         
-    cv2.imwrite(os.path.join(path, "Pictures/Image 3DGr DNeg Sympl"+str(initial_q)+".png"), 255*Photo1)
+    cv2.imwrite(os.path.join(path, "Pictures/Image 2DGr DNeg Sympl"+str(initial_q)+".png"), 255*Photo1)
     #cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
