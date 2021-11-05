@@ -310,7 +310,7 @@ def Grid_constr_3D(q, N_a, R, w, Sl_old = None):
     #        w: ratio 
     #output: 2D boolean array
     Nz, Ny =  q[0].shape
-    if Sl_old == None:
+    if np.any(Sl_old == None):
         Sl_old = np.zeros((Nz, Ny), dtype=bool)
     grid_slice = np.zeros((Nz, Ny), dtype=bool)
     Sl_old_inv = ~Sl_old
@@ -363,9 +363,9 @@ def Make_Pict_RGBP(q, Grid):
                 elif phi < np.pi and th < np.pi/2:
                     row.append([0.5, 0.5, 0])
 
-            if r < 0 and np.linalg.norm(row[-1]) != 0:
-                # invert color for points on oposite side of wormhol
-                row[-1] = [(1 - row[-1][k]) for k in range(3)]
+                if r < 0:
+                    # invert color for points on oposite side of wormhol
+                    row[-1] = [(1 - row[-1][k]) for k in range(3)]
 
         pict.append(np.array(row))
 
@@ -486,8 +486,18 @@ def gdsc(Motion, name, path):
             cl_i =cl[ind[ij]]
             ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
     # adds surface
+    
+    S_l = np.linspace(np.max(l), np.min(l), len(l)+1) 
+    S_phi = np.linspace(0, 2*np.pi, len(l))
+    S_L, S_PHI = np.meshgrid(dneg_r(S_l), S_phi) # radius is r(l)
+
+    # tile want symmetrisch voor rotaties, onafhankelijk van phi
+    # Integraal voor Z richting zoals gedefinieerd in de paper
+    S_Z = np.tile(Dia.imb_f_int(S_l), (len(l), 1)) #z(l)
+
+    S_X, S_Y = S_L*np.cos(S_PHI), S_L*np.sin(S_PHI)
+    ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
     ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
-    Dia.inb_diagr([-10, 10], 1000, ax)
     plt.savefig(os.path.join(path, name), dpi=150)
     #plt.show()
 
@@ -495,8 +505,9 @@ if __name__ == '__main__':
     path = os.getcwd()
     #initial position in spherical coord
     #for radius in range(1, 15):
-    initial_q = np.array([5, np.pi, np.pi/2])
-    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, initial_q, 20**2, 20**2, '2D')
+    initial_q = np.array([10, np.pi, np.pi/2])
+    Grid_dimension = '3D'
+    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, initial_q, 20**2, 20**2, Grid_dimension)
     # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
     # np.save('ray_solved', Motion1)
     plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(initial_q)+".png", path)
@@ -513,5 +524,5 @@ if __name__ == '__main__':
     gdsc(Motion1, "Pictures/geodesics DNeg Sympl"+str(initial_q)+".png", path)
     # gdsc(Motion2)
         
-    cv2.imwrite(os.path.join(path, "Pictures/Image 2DGr DNeg Sympl"+str(initial_q)+".png"), 255*Photo1)
+    cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(initial_q)+".png"), 255*Photo1)
     #cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
