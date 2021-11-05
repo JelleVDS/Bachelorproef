@@ -154,24 +154,30 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     q = q1
     Motion = [[p, q]]
     CM = []
+    Grid = []
 
     start = time.time()
 
     # Integration
     for i in range(N):
         p, q , CM_i = integrator(p, q, Cst, h)
-        # Motion.append([p, q])
-        # CM.append(CM_i)
-    # CM.append(DNeg_CM(p, q))
-    Motion.append([p, q])
+        #Motion.append([p, q])
+        #CM.append(CM_i)
+        # change parameters grid here
+        Grid.append(Grid_constr(q, 8, 1, 0.01))
+
+    #CM.append(DNeg_CM(p, q))
+    #Motion.append([p, q])
     end = time.time()
 
     print(end - start)
 
-    pict = Make_Pict_RB(q)
+    #pict = Make_Pict_RB(q)
+    Grid = np.any(np.array(Grid), axis=0)
+    pict =  Make_Pict_RGBP(q, Grid)
     #print(pict)
     # pict = 0
-    return np.array(Motion), pict , np.array(CM)
+    return np.array(Motion), pict, np.array(CM)
 
 
 def diff_equations(t, variables):
@@ -269,17 +275,40 @@ def Make_Pict_RB(q):
         pict.append(row)
     return cv2.cvtColor(np.array(pict, np.float32), 1)
 
-
-def Make_Pict_RGBP(q, q0, N_a, R, w):
+def Grid_constr(q, N_a, R, w):
     # input: q: matrix with coordinates in configuration space on first row
-    #        q0: starting position (unused)
-    #        3D matrix (2D matrix of rays each containing a coordinate in colorspace)
     #        N_a: subdivision angles
     #        N_r: linspace radius to form grid
-    #        h: width lines grid
+    #        w: ratio
+    #output: 2D boolean array
+    Nz, Ny =  q[0].shape
+    r, phi, theta = q
 
     Par_phi = np.linspace(0, 2*np.pi, N_a-1)
     Par_th = np.linspace(0, np.pi, N_a-1)
+
+    # Defines point on spherical grid
+    on_shell = (np.abs(R - np.mod(r, R)) < R*w) | (np.abs(np.mod(r, R) - R) < R*w)
+
+    on_phi = np.any(
+        np.abs(phi.reshape(1,Nz,Ny) -
+               np.transpose(np.tile(Par_phi, (Nz, Ny,1)), (2,0,1)))
+        < 2*np.pi/N_a*w, axis=0)
+
+    on_theta = np.any(
+        np.abs(theta.reshape(1,Nz,Ny) -
+               np.transpose(np.tile(Par_th, (Nz, Ny,1)), (2,0,1)))
+        < np.pi/N_a*w,  axis=0)
+
+    # Boolean conditions for when rays lands on spherical grid
+    grid_slice = (on_phi & on_theta) | (on_phi & on_shell) | (on_shell & on_theta)
+    return grid_slice
+
+
+def Make_Pict_RGBP(q, Grid):
+    # input: q: matrix with coordinates in configuration space on first row
+    # output: 3D matrix (2D matrix of rays each containing a coordinate in colorspace)
+
     pict = []
 
     for j in range(len(q[0])):
@@ -289,17 +318,8 @@ def Make_Pict_RGBP(q, q0, N_a, R, w):
             r = q[0][j,i]
             phi = q[1][j,i]
             th = q[2][j,i]
-
-            # Defines point on spherical grid
-            on_shell = (np.abs(R - np.mod(r, R)) < R*w) or (np.abs(np.mod(r, R) - R) < R*w)
-            on_phi = np.any(np.abs(phi - Par_phi) < 2*np.pi/N_a*w)
-            on_theta = np.any(np.abs(th - Par_th) < np.pi/N_a*w)
-
-            # Boolean conditions for when rays lands on spherical grid
-
-            if (on_phi and on_theta) or (on_phi and on_shell) or (on_shell and on_theta):
-                row.append(np.array([0, 0, 0]))
-
+            if Grid[j,i] == True:
+                row.append([0,0,0])
             else:
                 # colors based on sign azimutha angle and inclination
                 if phi > np.pi and th > np.pi/2:
@@ -437,31 +457,25 @@ def gdsc(Motion):
     Dia.inb_diagr([-10, 10], 1000, ax)
     plt.show()
 
+if __name__ == '__main__':
+    #initial position in spherical coord
+    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([14.5, np.pi, np.pi/2]), 20**2, 20**2)
+    # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
+    # np.save('ray_solved', Motion1)
+    #plot_CM(CM1, ['H', 'b', 'B**2'])
+    # plot_CM(CM2, ['H', 'b', 'B**2'])
 
-#initial position in spherical coord
+    #start = time.time()
+    #sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
+    #end = time.time()
+    #print('Tijdsduur = ' + str(end-start))
+    #print(sol)
+    #np.save('raytracer2', sol)`
 
+    #end_pos = Motion1[-1, 1]
+    #gdsc(Motion1)
+    # gdsc(Motion2)
 
-# np.save('ray_solved', Motion1)
-# plot_CM(CM1, ['H', 'b', 'B**2'])
-# plot_CM(CM2, ['H', 'b', 'B**2'])
-
-start = time.time()
-sol = simulate_raytracer(0.01, 100, [14, 0, 0], Nz = 20**2, Ny = 20**2, methode = 'RK45')
-# Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([14, 3, 2]), 20**2, 20**2)
-# Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1500, np.array([14.5, 0, 0]), 1024, 2048)
-# np.save('ray_solved', Motion2)
-end = time.time()
-print('TijdsduurRK = ' + str(end-start))
-# start = time.time()
-# # sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
-# Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([5, 3, 2]), 20**2, 20**2)
-# end = time.time()
-# print('TijdsduurSP = ' + str(end-start))
-# # print(sol)
-# np.save('raytracer2', sol)
-# gdsc(Motion1)
-# gdsc(Motion2)
-
-# path = os.getcwd()
-# cv2.imwrite(os.path.join(path, 'DNeg Sympl__14_0_0.png'), 255*Photo2)
-# cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
+    #path = os.getcwd()
+    #cv2.imwrite(os.path.join(path, 'DNeg Sympl.png'), 255*Photo1)
+    # cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
