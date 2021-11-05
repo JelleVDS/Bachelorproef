@@ -459,18 +459,24 @@ def ray_spread(Nz, Ny):
     return cl, ind
 
 
-def gdsc(Motion, name, path):
+def gdsc(Motion, name, path, select = None):
     # input: Motion: 5D matrix, the elements being [p, q] with p, q as defined earlier
-
-    Motion = np.transpose(Motion, (1,2,0,3,4))
-
-    Ny, Nz =  Motion[0][0][0].shape
-    Ny_s = int(np.sqrt(Nz))
-    Nz_s = int(np.sqrt(Ny))
-
-    # Samples a uniform portion of the rays for visualisation
-    Sample = Motion[:, :, :, 1::Nz_s, 1::Ny_s]
-    cl, ind = ray_spread(Nz_s, Ny_s)
+    
+    if np.any(select == None):
+        Motion = np.transpose(Motion, (1,2,0,3,4))
+    
+        Ny, Nz =  Motion[0][0][0].shape
+        Ny_s = int(np.sqrt(Nz))
+        Nz_s = int(np.sqrt(Ny))
+    
+        # Samples a uniform portion of the rays for visualisation
+        Sample = Motion[:, :, :, 1::Nz_s, 1::Ny_s]
+        cl, ind = ray_spread(Nz_s, Ny_s)
+    else:
+        Motion = np.transpose(Motion, (3,4,0,1,2))
+        Sample = np.transpose(
+            [Motion[tuple(select[k])] for k in range(len(select))]
+            , (2,3,1,0))
 
     p, q = Sample
     p_l, p_phi, p_th = p
@@ -479,12 +485,17 @@ def gdsc(Motion, name, path):
     ax = plt.figure().add_subplot(projection='3d')
     X, Y = dneg_r(l)*np.cos(phi), dneg_r(l)*np.sin(phi)
     Z = Dia.imb_f_int(l)
-
-    for i in range(Nz_s):
-        for j in range(Ny_s):
-            ij = i + Nz_s*j
-            cl_i =cl[ind[ij]]
-            ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
+    
+    if np.any(select == None):
+        for i in range(Nz_s):
+            for j in range(Ny_s):
+                ij = i + Nz_s*j
+                cl_i =cl[ind[ij]]
+                ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
+        ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
+    else:
+        for k in range(len(select)):
+            ax.plot(X[:,k], Y[:,k], Z[:,k])
     # adds surface
     
     S_l = np.linspace(np.max(l), np.min(l), len(l)+1) 
@@ -497,7 +508,6 @@ def gdsc(Motion, name, path):
 
     S_X, S_Y = S_L*np.cos(S_PHI), S_L*np.sin(S_PHI)
     ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
-    ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
     plt.savefig(os.path.join(path, name), dpi=150)
     #plt.show()
 
@@ -505,12 +515,14 @@ if __name__ == '__main__':
     path = os.getcwd()
     #initial position in spherical coord
     #for radius in range(1, 15):
-    initial_q = np.array([10, np.pi, np.pi/2])
-    Grid_dimension = '3D'
-    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, initial_q, 20**2, 20**2, Grid_dimension)
+    initial_q = np.array([7, np.pi, np.pi/2])
+    Grid_dimension = '2D'
+    mode = 0
+    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, initial_q, 20**2, 20**2, Grid_dimension, mode)
     # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
     # np.save('ray_solved', Motion1)
-    plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(initial_q)+".png", path)
+    if mode ==  0:
+        plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(initial_q)+".png", path)
     # plot_CM(CM2, ['H', 'b', 'B**2'])
         
     #start = time.time()
@@ -520,8 +532,10 @@ if __name__ == '__main__':
     #print(sol)
     #np.save('raytracer2', sol)`
         
-    end_pos = Motion1[-1, 1]
-    gdsc(Motion1, "Pictures/geodesics DNeg Sympl"+str(initial_q)+".png", path)
+    if mode ==  0:
+        #Geo_Sel = None
+        Geo_Sel = [[377, 24], [54, 341], [200, 200], [86, 39], [390, 390]]
+        gdsc(Motion1, "Pictures/geodesics DNeg Sympl"+str(initial_q)+".png", path, Geo_Sel)
     # gdsc(Motion2)
         
     cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(initial_q)+".png"), 255*Photo1)
