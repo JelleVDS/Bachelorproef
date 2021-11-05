@@ -6,8 +6,8 @@ import os
 
 # Inladen foto's
 print('Reading in pictures...')
-img_saturn    = cv2.imread('Saturn.jpg')
-img_gargantua = cv2.imread('wormhole.jpg')
+img_saturn    = cv2.imread('four.png')
+img_gargantua = cv2.imread('negfour.png')
 # print(img_gargantua.shape)
 # print(len(img_saturn))
 
@@ -17,15 +17,15 @@ horizontal = len(img_saturn[0])  #2048
 
 theta_list = list()
 for teller in range(0, 1024):
-    theta = (np.pi/vertical) * teller - np.pi
+    theta = (np.pi/vertical) * teller #- np.pi
     theta_list.append(theta)
 
 phi_list =list()
 for teller in range(0, 2048):
-    phi   = (2*np.pi/horizontal) * teller + np.pi
+    phi   = (2*np.pi/horizontal) * teller #+ np.pi
     # Nulpunt in het midden van het scherm zetten:
-    if phi > 2*np.pi:
-        phi = phi - 2*np.pi
+    # if phi > 2*np.pi:
+    #     phi = phi - 2*np.pi
     phi_list.append(phi)
 
 def photo_to_sphere(photo):
@@ -43,12 +43,9 @@ def photo_to_sphere(photo):
     horizontal = len(photo[0])  #2048
     for row in range(0, vertical):
         for column in range(0, horizontal):
-            theta = (np.pi/vertical) * row - np.pi
-            phi   = (2*np.pi/horizontal) * column + np.pi
+            theta = (np.pi/vertical) * row #- np.pi
+            phi   = (2*np.pi/horizontal) * column #+ np.pi
             # Nulpunt in het midden van het scherm zetten:
-            if phi > 2*np.pi:
-                phi = phi - 2*np.pi
-
             coordinate = (theta, phi) #Tuple with angles that will be used as key
             pixel      = np.array([photo[row][column]]) #RGB-values
             dict[coordinate] = pixel
@@ -80,9 +77,9 @@ def decide_universe(photo, saturn, gargantua):
         row = []
         for kolom in range(len(photo[-1][1][0][0])):
             if photo[-1][1][0][rij,kolom] <= 0:
-                pixel = ray_to_gar((photo[-1][1][1][rij][kolom], photo[-1][1][2][rij][kolom]), gargantua)
+                pixel = ray_to_rgb((photo[-1][1][1][rij][kolom], photo[-1][1][2][rij][kolom]), gargantua)
             else:
-                pixel = ray_to_saturn((photo[-1][1][1][rij][kolom], photo[-1][1][2][rij][kolom]), saturn)
+                pixel = ray_to_rgb((photo[-1][1][1][rij][kolom], photo[-1][1][2][rij][kolom]), saturn)
 
             [[R, G, B]] = pixel
             row.append([R, G, B])
@@ -100,7 +97,7 @@ def distance(x, position):
     return dist
 
 
-def ray_to_saturn(position, saturn):
+def ray_to_rgb(position, saturn):
     """
     Determines values of the pixels for the rays at the Saturn side.
     Input:  - position: tuple of theta and phi angles: [theta, phi]
@@ -108,7 +105,7 @@ def ray_to_saturn(position, saturn):
     Output: - List with RBG-values of corresponding pixel of the Saturn picture
     """
     t, p = position
-    screen = saturn.keys()
+    # screen = saturn.keys()
     theta_near = min(theta_list, key=lambda x: distance(x, t))
     phi_near = min(phi_list, key=lambda x: distance(x, p))
     nearest = (theta_near, phi_near)
@@ -117,24 +114,6 @@ def ray_to_saturn(position, saturn):
     # print(RGB)
 
     return RGB
-
-def ray_to_gar(position, gargantua):
-    """
-    Determines values of the pixels for the rays at the Gargantua side.
-    Input:  - position: tuple of theta and phi angles: [theta, phi]
-            - gargantua: spherical picture of the other side
-    Output: - List with RBG-values of corresponding pixel of the Saturn picture
-    """
-    t, p = position
-    screen = gargantua.keys()
-    theta_near = min(theta_list, key=lambda x: distance(x, t))
-    phi_near = min(phi_list, key=lambda x: distance(x, p))
-    nearest = (theta_near, phi_near)
-    RGB = gargantua[nearest]
-    # print(RGB)
-
-    return RGB
-
 
 saturn      = photo_to_sphere(img_saturn)
 # np.savez('sat', saturn)
