@@ -46,7 +46,7 @@ def dneg_d2r_dl2(y, M=0.43/1.42953):
     return d2r_dl2
 
 
-def screen_cart(Nz, Ny, L1 = 1, L2=2):
+def screen_cart(Nz, Ny, L1 = 1, L2=1):
      # input: Nz amount of pixels on vertical side screen
      #        Ny amount pixels horizontal side screen ,
      #        L = physical width and lenght of the screen.
@@ -155,7 +155,7 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mod
     q = q1
     Motion = [[p, q]]
     CM = []
-    Grid = [np.zeros((Nz, Ny), dtype=bool)]
+    Grid = np.zeros((Nz, Ny), dtype=bool)
 
     start = time.time()
 
@@ -167,7 +167,7 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mod
             CM.append(CM_i)
         if Gr_D == '3D':
             # change parameters grid here
-            Grid.append(Grid_constr_3D(q, 11, 1, 0.01, Grid[-1]))
+            Grid = Grid_constr_3D(q, 11, 1, 0.01, Grid)
 
     if mode == 0:
         CM.append(DNeg_CM(p, q))
@@ -177,9 +177,7 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mod
     print(end - start)
 
     #pict = Make_Pict_RB(q)
-    if Gr_D == '3D':
-        Grid = np.any(np.array(Grid), axis=0)
-    else:
+    if Gr_D == '2D':
         Grid = Grid_constr_2D(q, 11, 1, 0.05)
     pict =  Make_Pict_RGBP(q, Grid)
     #print(pict)
@@ -303,38 +301,37 @@ def Grid_constr_2D(q, N_a, R, w):
     return on_phi | on_theta
 
 
-def Grid_constr_3D(q, N_a, R, w, Sl_old = None):
+def Grid_constr_3D(q, N_a, R, w, Slice = None):
     # input: q: matrix with coordinates in configuration space on first row
     #        N_a: subdivision angles
     #        N_r: linspace radius to form grid
     #        w: ratio
     #output: 2D boolean array
     Nz, Ny =  q[0].shape
-    if np.any(Sl_old == None):
-        Sl_old = np.zeros((Nz, Ny), dtype=bool)
-    grid_slice = np.zeros((Nz, Ny), dtype=bool)
-    Sl_old_inv = ~Sl_old
+    if np.any(Slice == None):
+        Slice = np.zeros((Nz, Ny), dtype=bool)
+    Slice_inv = ~Slice
     r, phi, theta = q
 
     Par_phi = np.linspace(0, 2*np.pi, N_a-1)
     Par_th = np.linspace(0, np.pi, N_a-1)
 
     # Defines point on spherical grid
-    rr = r[Sl_old_inv]
+    rr = r[Slice_inv]
     M = len(rr)
     on_shell = (np.abs(R - np.mod(rr, R)) < R*w) | (np.abs(np.mod(rr, R) - R) < R*w)
 
     on_phi = np.any(
-        np.abs(phi[Sl_old_inv].reshape(1,M) - np.tile(Par_phi, (M,1)).T)
+        np.abs(phi[Slice_inv].reshape(1,M) - np.tile(Par_phi, (M,1)).T)
         < 2*np.pi/N_a*w, axis=0)
 
     on_theta = np.any(
-        np.abs(theta[Sl_old_inv].reshape(1,M) - np.tile(Par_th, (M,1)).T)
+        np.abs(theta[Slice_inv].reshape(1,M) - np.tile(Par_th, (M,1)).T)
         < np.pi/N_a*w,  axis=0)
 
     # Boolean conditions for when rays lands on spherical grid
-    grid_slice[Sl_old_inv] = (on_phi & on_theta) | (on_phi & on_shell) | (on_shell & on_theta)
-    return grid_slice
+    Slice[Slice_inv] = (on_phi & on_theta) | (on_phi & on_shell) | (on_shell & on_theta)
+    return Slice
 
 
 def Make_Pict_RGBP(q, Grid):
@@ -516,7 +513,7 @@ if __name__ == '__main__':
     #initial position in spherical coord
     #for radius in range(1, 15):
     initial_q = np.array([7, np.pi, np.pi/2])
-    Grid_dimension = '2D'
+    Grid_dimension = '3D'
     mode = 0
     Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, initial_q, 20**2, 20**2, Grid_dimension, mode)
     # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
@@ -535,7 +532,11 @@ if __name__ == '__main__':
     if mode ==  0:
         #Geo_Sel = None
         Geo_Sel = [[377, 24], [54, 341], [200, 200], [86, 39], [390, 390]]
-        gdsc(Motion1, "Pictures/geodesics DNeg Sympl"+str(initial_q)+".png", path, Geo_Sel)
+        if Geo_Sel == None:
+            Geo_txt = ""
+        else:
+            Geo_txt = str(Geo_Sel)
+        gdsc(Motion1, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(initial_q)+".png", path, Geo_Sel)
     # gdsc(Motion2)
 
     cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(initial_q)+".png"), 255*Photo1)
