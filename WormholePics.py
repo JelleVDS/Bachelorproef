@@ -1,4 +1,4 @@
-# import WormholeRayTracer as wrmhl
+#import WormholeRayTracer as w
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -53,6 +53,7 @@ def photo_to_sphere(photo):
 
     return dict
 
+
 # ph = photo_to_sphere(img_saturn)
 # im = np.array([])
 # for element in ph:
@@ -73,6 +74,7 @@ def decide_universe(photo, saturn, gargantua):
             - gargantua: spherical picture of the other side
     Output: - picture:   Matrix with RGB values for cv2
     """
+    print('here:3')
     picture = []
     for rij in range(len(photo)):
         row = []
@@ -88,6 +90,8 @@ def decide_universe(photo, saturn, gargantua):
     # img = cv2.cvtColor(np.array(picture, np.float32), 1)
     return np.array(picture)
 
+    print('here 4')
+
 def distance(x, position):
     """
     Define a distance function for closest neighbour
@@ -96,6 +100,7 @@ def distance(x, position):
 
     return dist
 
+print('here 5')
 
 def ray_to_rgb(position, saturn):
     """
@@ -112,6 +117,8 @@ def ray_to_rgb(position, saturn):
     RGB = saturn[nearest]
 
     return RGB
+
+print('here 6')
 
 saturn      = photo_to_sphere(img_saturn)
 print('Saturn image loaded.')
