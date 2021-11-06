@@ -11,22 +11,22 @@ def sum_subd(A):
             B[i,j] = np.sum(A[Ny_s*i:Ny_s*(i+1), Nz_s*j:Nz_s*(j+1)])
     return B
 
-def Sympl_DNeg(p, q, Cst, h, M = 0.43/1.42953, rho = 1):
+def Sympl_DNeg(p, q, Cst, h, Par):
     # input: p: matrix with coordinates in momentum space on first row,
     # q: matrix with coordinates in configuration space on first row,
     # Cst: list of cst of motion containing the value for each ray in 2D matrix,
     # h: stepsize, M: scalar, rho: scalar, output: list of coordinates in
     # configuration space containing 2D matrix with value for each ray
+    M, rho, a = Par
     p_l, p_phi, p_th = p
     l, phi, theta = q
     b, B_2 = Cst
     
     l_abs = np.abs(l)
-    x = 2*l_abs/(np.pi*M)
-    x_atan = np.arctan(x)
-    r = rho + M*(x*x_atan - 0.5*np.log(1 + x**2))
-    dr = 2/np.pi*x_atan
-    d2r =  4*M*l/(np.pi**2*M**2*l_abs + 4*l_abs**3)
+    x = 2*(l_abs - a)/(np.pi*M)
+    r = rho + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
+    dr = -2/np.pi*np.arctan(-x)*np.sign(l)
+    d2r = (4*M)/(4*a**2 + M**2*np.pi**2 + 4*l**2 - 8*a*l_abs)
     
     rec_r = 1/r
     rec_r_2 = rec_r**2

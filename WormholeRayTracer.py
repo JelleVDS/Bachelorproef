@@ -11,37 +11,38 @@ import scipy.integrate as integr
 #import scipy as sc
 
 
+
 #Dit is op de master branch:
 
 
-def dneg_r(y, M=0.43/1.42953 , p=1, a=0):
+def dneg_r(y, M=0.43/1.42953 , rho=1, a=0):
     # input: scalars
     # output: scalar
     # define r(l) for a DNeg wormhole without gravity
 
     x = 2*(np.abs(y) - a)/(np.pi*M)
-    r = p + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
+    r = rho + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
 
     return r
 
 
-def dneg_dr_dl(y, M=0.43/1.42953):
+def dneg_dr_dl(y, M=0.43/1.42953, a=0):
     # input:scalars
     # output: scalar
     # define derivative of r to l
 
-    x = 2*np.abs(y)/(np.pi*M)
-    dr_dl = 2/np.pi*np.arctan(x)
+    x = 2*(a-np.abs(y))/(np.pi*M)
+    dr_dl = -2/np.pi*np.arctan(-x)*np.sign(y)
 
     return dr_dl
 
 
-def dneg_d2r_dl2(y, M=0.43/1.42953):
+def dneg_d2r_dl2(y, M=0.43/1.42953, a=0):
     # input: scalars
     # output: scalars
     # define second derivative of r to l
 
-    d2r_dl2 = 4*M*y/(np.pi**2*M**2*np.abs(y) + 4*np.abs(y)**3)
+    d2r_dl2 = (4*M)/(4*a**2 + M**2*np.pi**2 + 4*y**2 - 8*a*np.abs(y))
 
     return d2r_dl2
 
@@ -137,7 +138,7 @@ def inn_mom_DNeg(S_n, S_sph):
     return p
 
 
-def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mode = 0):
+def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mode = 0):
     #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
     #       h: stepsize
     #       N amount of steps
@@ -161,7 +162,7 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mod
 
     # Integration
     for i in range(N):
-        p, q , CM_i = integrator(p, q, Cst, h)
+        p, q , CM_i = integrator(p, q, Cst, h, Par)
         if mode == 0:
             Motion.append([p, q])
             CM.append(CM_i)
@@ -170,7 +171,7 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mod
             Grid = Grid_constr_3D(q, 11, 1, 0.01, Grid)
 
     if mode == 0:
-        CM.append(DNeg_CM(p, q))
+        CM.append(DNeg_CM(p, q, Par))
         Motion.append([p, q])
     end = time.time()
 
@@ -391,15 +392,16 @@ def sum_subd(A):
     return B
 
 
-def DNeg_CM(p, q , M = 0.43/1.42953, rho = 1):
+def DNeg_CM(p, q , Par):
     #input: p, q  3D matrices as defined earlier
     #output: 1D matrix, constants of Motion defined in each timestep
-
+    M, rho, a = Par
+    
     p_l, p_phi, p_th = p
     l, phi, theta = q
 
     # defining r(l):
-    r = dneg_r(l, M, rho)
+    r = dneg_r(l, M, rho, a)
 
     rec_r = 1/r
     rec_r_2 = rec_r**2
@@ -456,9 +458,10 @@ def ray_spread(Nz, Ny):
     return cl, ind
 
 
-def gdsc(Motion, name, path, select = None):
+def gdsc(Motion, Par, name, path, select = None):
     # input: Motion: 5D matrix, the elements being [p, q] with p, q as defined earlier
-
+    M, rho, a = Par
+    
     if np.any(select == None):
         Motion = np.transpose(Motion, (1,2,0,3,4))
 
@@ -480,8 +483,9 @@ def gdsc(Motion, name, path, select = None):
     l, phi, theta = q
     # caluclates coordinates in inbedded space
     ax = plt.figure().add_subplot(projection='3d')
-    X, Y = dneg_r(l)*np.cos(phi), dneg_r(l)*np.sin(phi)
-    Z = Dia.imb_f_int(l)
+    r = dneg_r(l, M, rho, a)
+    X, Y = r*np.cos(phi), r*np.sin(phi)
+    Z = Dia.imb_f_int(l, Par)
 
     if np.any(select == None):
         for i in range(Nz_s):
@@ -498,11 +502,11 @@ def gdsc(Motion, name, path, select = None):
 
     S_l = np.linspace(np.max(l), np.min(l), len(l)+1)
     S_phi = np.linspace(0, 2*np.pi, len(l))
-    S_L, S_PHI = np.meshgrid(dneg_r(S_l), S_phi) # radius is r(l)
+    S_L, S_PHI = np.meshgrid(dneg_r(S_l, M, rho, a), S_phi) # radius is r(l)
 
     # tile want symmetrisch voor rotaties, onafhankelijk van phi
     # Integraal voor Z richting zoals gedefinieerd in de paper
-    S_Z = np.tile(Dia.imb_f_int(S_l), (len(l), 1)) #z(l)
+    S_Z = np.tile(Dia.imb_f_int(S_l, Par), (len(l), 1)) #z(l)
 
     S_X, S_Y = S_L*np.cos(S_PHI), S_L*np.sin(S_PHI)
     ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
@@ -510,17 +514,18 @@ def gdsc(Motion, name, path, select = None):
     #plt.show()
 
 if __name__ == '__main__':
-    path = os.getcwd()
+    path = os.getcwd() 
+    Par = [0.43/1.42953, 1, 0] # M, rho, a parameters wormhole
     #initial position in spherical coord
     #for radius in range(1, 15):
     initial_q = np.array([13, np.pi, np.pi/2])
     Grid_dimension = '3D'
     mode = 0
-    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 3000, initial_q, 20**2, 20**2, Grid_dimension, mode)
+    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, Par, 0.01, 3000, initial_q, 20**2, 20**2, Grid_dimension, mode)
     # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
     # np.save('ray_solved', Motion1)
     if mode ==  0:
-        plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(initial_q)+".png", path)
+        plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path)
     # plot_CM(CM2, ['H', 'b', 'B**2'])
 
     #start = time.time()
@@ -531,14 +536,14 @@ if __name__ == '__main__':
     #np.save('raytracer2', sol)`
 
     if mode ==  0:
-        #Geo_Sel = None
-        Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
+        Geo_Sel = None
+        #Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
         if Geo_Sel == None:
             Geo_txt = ""
         else:
             Geo_txt = str(Geo_Sel)
-        gdsc(Motion1, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(initial_q)+".png", path, Geo_Sel)
+        gdsc(Motion1, Par, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path, Geo_Sel)
     # gdsc(Motion2)
 
-    cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(initial_q)+".png"), 255*Photo1)
+    cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(Par)+" "+str(initial_q)+".png"), 255*Photo1)
     #cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
