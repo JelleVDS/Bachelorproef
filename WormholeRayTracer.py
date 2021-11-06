@@ -188,7 +188,7 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mod
 
 
 def diff_equations(t, variables):
-    l, theta, phi, p_l, p_th, p_phi = variables
+    l, phi, theta, p_l, p_phi, p_th = variables
     r = dneg_r(l)
     rec_r = 1/r
     rec_r_2 = rec_r**2
@@ -197,10 +197,6 @@ def diff_equations(t, variables):
     cos1 = np.cos(theta)
     sin2 = sin1**2
     sin3 = sin1*sin2
-    H1 = p_l**2
-    H2 = p_th**2*rec_r_2
-    H3 = p_phi**2/sin2*rec_r_2
-    # H = 0.5*sum_subd((H1 + H2 + H3))
     B = p_th**2 + p_phi**2/sin2
     b = p_phi
 
@@ -211,11 +207,11 @@ def diff_equations(t, variables):
     dpl_dt      = B**2 * (dneg_dr_dl(l)) * rec_r_3
     dpth_dt     = b ** 2 * cos1 / sin3 * rec_r_2
 
-    diffeq = [dl_dt, dphi_dt, dtheta_dt, dpl_dt, np.zeros(dl_dt.shape), dpth_dt]
+    diffeq = [-dl_dt, -dphi_dt, -dtheta_dt, -dpl_dt, np.zeros(dl_dt.shape), -dpth_dt]
     return diffeq
 
 
-def simulate_raytracer(h, N, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
+def simulate_raytracer(t_end, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
@@ -228,43 +224,74 @@ def simulate_raytracer(h, N, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     Output: - sol.y: a matrix with each row containing the initial and end value
               for one ray: [l, phi, theta, p_l, p_phi, p_theta]
     """
-    S_c = screen_cart(Nz, Ny)
+    print('Initializing screen and calculating initial condition...')
+    end = int(np.ceil(np.sqrt(Ny**2+Nz**2)))
+    S_c = screen_cart(end, end)
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
     p1, p2, p3 = p
     q1, q2, q3 = q0
-    t_end = N*h
     endpos = []
     endmom = []
-    print(len(p1))
-    print(len(p1[0]))
+    teller1 = int(len(p1)/2)
+    # for teller1 in range(0, len(p1)):
+    #     row_pos = []
+    #     row_mom = []
+    for teller2 in range(int(len(p1[0])/2), len(p1[0])):
 
-    for teller1 in range(0, len(p1)):
-        row_pos = []
-        row_mom = []
-        for teller2 in range(0, len(p1[0])):
-
-            start_it = time.time()
-            initial_values = np.array([q1, q3, q2, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2]])
-            sol            = integr.solve_ivp(diff_equations, [0, -2], initial_values, method = methode, t_eval=[-2])
-            #Reads out the data from the solution
-            l_end       = sol.y[0][-1]
-            phi_end     = sol.y[1][-1]
-            theta_end   = sol.y[2][-1]
-            pl_end      = sol.y[3][-1]
-            pphi_end    = sol.y[4][-1]
-            ptheta_end  = sol.y[5][-1]
-            # adds local solution to row
-            row_pos.append([l_end, phi_end, theta_end])
-            row_mom.append([pl_end, pphi_end, ptheta_end])
-            end_it = time.time()
-            duration = end_it - start_it
-            print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
+        # start_it = time.time()
+        initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2]])
+        sol            = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
+        #Reads out the data from the solution
+        l_end       = sol.y[0][-1]
+        phi_end     = sol.y[1][-1]
+        theta_end   = sol.y[2][-1]
+        pl_end      = sol.y[3][-1]
+        pphi_end    = sol.y[4][-1]
+        ptheta_end  = sol.y[5][-1]
+        # # adds local solution to row
+        #     row_pos.append(np.array([l_end, phi_end, theta_end]))
+        #     row_mom.append(np.array([pl_end, pphi_end, ptheta_end]))
+        # end_it = time.time()
+        # duration = end_it - start_it
+        # print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
         # adds row to matrix
-        endpos.append(row_pos)
-        endmom.append(row_mom)
-    return endpos, endmom
+        endpos.append(np.array([l_end, phi_end, theta_end]))
+        endmom.append(np.array([pl_end, pphi_end, ptheta_end]))
+    return np.array(endmom), np.array(endpos)
+
+
+
+def rotate_ray(ray, Nz, Ny):
+    """
+    The function assumes a 'horizontal' ray for theta = pi/2 and phi: pi to 2pi
+    with position values and returns a full 2D picture of the wormhole.
+    Inputs: - ray: the calculated 1D line
+            - Nz: vertical number of pixels
+            - Ny: horizontal number of pixels
+    Output: - pic: a 5D array with the pixels and their l, phi, theta
+    """
+    Mz = np.arange(-Nz/2, Nz/2, 1)
+    My = np.arange(-Ny/2, Ny/2, 1)
+    pic = np.zeros((Nz, Ny, 3))
+    print(pic.shape)
+    for height in Mz:
+        for width in My:
+            r = int(round(np.sqrt(width**2 + height**2)))
+            if r == len(ray):
+                r = r-1
+            z = int(height + Nz/2)
+            y = int(width + Ny/2)
+            l, phi, theta = ray[r]
+
+            phi_rot     = height
+            theta_rot   = width
+            loc = np.array([l, phi + phi_rot, theta + theta_rot])
+            pic[z][y] = loc
+
+    return pic
+
 
 
 def Make_Pict_RB(q):
@@ -515,28 +542,36 @@ if __name__ == '__main__':
     path = os.getcwd()
     #initial position in spherical coord
     #for radius in range(1, 15):
-    initial_q = np.array([7, np.pi, np.pi/2])
-    Grid_dimension = '2D'
-    mode = 0
-    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, initial_q, 20**2, 20**2, Grid_dimension, mode)
-    # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
+    # initial_q = np.array([7, np.pi, np.pi/2])
+    # Grid_dimension = '2D'
+    # mode = 0
+    # Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, initial_q, 10, 10, Grid_dimension, mode)
+    # print(Motion1[-1])
     # np.save('ray_solved', Motion1)
-    if mode ==  0:
-        plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(initial_q)+".png", path)
+    # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, [7, np.pi, np.pi/2], 10, 10)
+    # print(Motion2[-1][1])
+    # if mode ==  0:
+    #     plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(initial_q)+".png", path)
     # plot_CM(CM2, ['H', 'b', 'B**2'])
+    Nz = 1024
+    Ny = 2048
+    start = time.time()
+    sol = simulate_raytracer(300000, [14.5, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
+    end = time.time()
+    print('Tijdsduur = ' + str(end-start))
+    momenta, position = sol
+    print(position)
+    picture = rotate_ray(position, Nz, Ny)
+    print('saving location...')
+    np.save('raytracer2', picture)
+    print('location saved!')
 
-    #start = time.time()
-    #sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
-    #end = time.time()
-    #print('Tijdsduur = ' + str(end-start))
-    #print(sol)
-    #np.save('raytracer2', sol)`
-
-    if mode ==  0:
-        #Geo_Sel = None
-        Geo_Sel = [[377, 24], [54, 341], [200, 200], [86, 39], [390, 390]]
-        gdsc(Motion1, "Pictures/geodesics DNeg Sympl"+str(initial_q)+".png", path, Geo_Sel)
+    # print(picture)
+    # if mode ==  0:
+    #     #Geo_Sel = None
+    #     Geo_Sel = [[377, 24], [54, 341], [200, 200], [86, 39], [390, 390]]
+    #     gdsc(Motion1, "Pictures/geodesics DNeg Sympl"+str(initial_q)+".png", path, Geo_Sel)
     # gdsc(Motion2)
 
-    cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(initial_q)+".png"), 255*Photo1)
+    # cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(initial_q)+".png"), 255*Photo1)
     #cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)

@@ -8,6 +8,7 @@ import os
 print('Reading in pictures...')
 img_saturn    = cv2.imread('four.png')
 img_gargantua = cv2.imread('negfour.png')
+# print('here1')
 # print(img_gargantua.shape)
 # print(len(img_saturn))
 
@@ -16,18 +17,18 @@ vertical   = len(img_saturn)     #1024
 horizontal = len(img_saturn[0])  #2048
 
 theta_list = list()
-for teller in range(0, 1024):
+for teller in range(0, vertical):
     theta = (np.pi/vertical) * teller #- np.pi
     theta_list.append(theta)
 
 phi_list =list()
-for teller in range(0, 2048):
+for teller in range(0, horizontal):
     phi   = (2*np.pi/horizontal) * teller #+ np.pi
     # Nulpunt in het midden van het scherm zetten:
     # if phi > 2*np.pi:
     #     phi = phi - 2*np.pi
     phi_list.append(phi)
-
+# print('here2')
 def photo_to_sphere(photo):
     """
     Give the pixels of the pictures a spherical coordinate
@@ -73,17 +74,16 @@ def decide_universe(photo, saturn, gargantua):
     Output: - picture:   Matrix with RGB values for cv2
     """
     picture = []
-    for rij in range(len(photo[-1][1][0])):
+    for rij in range(len(photo)):
         row = []
-        for kolom in range(len(photo[-1][1][0][0])):
-            if photo[-1][1][0][rij,kolom] <= 0:
-                pixel = ray_to_rgb((photo[-1][1][1][rij][kolom], photo[-1][1][2][rij][kolom]), gargantua)
+        for kolom in range(len(photo[0])):
+            if photo[rij][kolom][0] < 0:
+                pixel = ray_to_rgb((photo[rij][kolom][1], photo[rij][kolom][2]), gargantua)
             else:
-                pixel = ray_to_rgb((photo[-1][1][1][rij][kolom], photo[-1][1][2][rij][kolom]), saturn)
+                pixel = ray_to_rgb((photo[rij][kolom][1], photo[rij][kolom][2]), saturn)
 
             [[R, G, B]] = pixel
             row.append([R, G, B])
-
         picture.append(np.array(row))
     # img = cv2.cvtColor(np.array(picture, np.float32), 1)
     return np.array(picture)
@@ -104,37 +104,28 @@ def ray_to_rgb(position, saturn):
             - saturn: spherical picture of the Saturn side
     Output: - List with RBG-values of corresponding pixel of the Saturn picture
     """
-    t, p = position
-    # screen = saturn.keys()
+    p, t = position
+
     theta_near = min(theta_list, key=lambda x: distance(x, t))
     phi_near = min(phi_list, key=lambda x: distance(x, p))
     nearest = (theta_near, phi_near)
-    # print(nearest)
     RGB = saturn[nearest]
-    # print(RGB)
 
     return RGB
 
 saturn      = photo_to_sphere(img_saturn)
-# np.savez('sat', saturn)
 print('Saturn image loaded.')
 gargantua   = photo_to_sphere(img_gargantua)
-# np.savez('gar', gargantua)
 print('Gargantua image loaded.')
-
-raytracer = np.load('ray_solved.npy')
+# import numpy as np
+raytracer = np.load('raytracer2.npy')
+# print(raytracer.shape)
 print('Ray tracer solution loaded.')
-# print(raytracer)
-# saturn = np.load('sat.npz')
-# gargantua = np.load('gar.npz')
 print('Starting image placing process...')
 pic = decide_universe(raytracer, saturn, gargantua)
-# print(pic)
 # print(pic.shape)
 print('Image placing completed.')
-# np.savez('picInterstellar', pic)
-# print(pic)
 print('Saving picture')
 path = os.getcwd()
-cv2.imwrite(os.path.join(path, 'InterstellarWormhole_14_5.png'), pic)
+cv2.imwrite(os.path.join(path, 'testpic.png'), pic)
 print('Picture saved')
