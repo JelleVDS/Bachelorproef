@@ -7,9 +7,7 @@ import os
 # Inladen foto's
 print('Reading in pictures...')
 img_saturn    = cv2.imread('four_400.png')
-print('here 1')
-img_gargantua = cv2.imread('negfour_400.png')
-print('here 2')
+img_gargantua = cv2.imread('neg_four_400.png')
 # print(img_gargantua.shape)
 # print(len(img_saturn))
 
@@ -18,12 +16,12 @@ vertical   = len(img_saturn)     #1024
 horizontal = len(img_saturn[0])  #2048
 
 theta_list = list()
-for teller in range(0, 400):
+for teller in range(0, 4):
     theta = (np.pi/vertical) * teller #- np.pi
     theta_list.append(theta)
 
 phi_list =list()
-for teller in range(0, 400):
+for teller in range(0, 4):
     phi   = (2*np.pi/horizontal) * teller #+ np.pi
     # Nulpunt in het midden van het scherm zetten:
     # if phi > 2*np.pi:
@@ -54,7 +52,7 @@ def photo_to_sphere(photo):
 
     return dict
 
-    print('here 3')
+
 # ph = photo_to_sphere(img_saturn)
 # im = np.array([])
 # for element in ph:
@@ -77,13 +75,13 @@ def decide_universe(photo, saturn, gargantua):
     """
     print('here:3')
     picture = []
-    for rij in range(len(photo[-1][1][0])):
+    for rij in range(len(photo[1][1][0])):
         row = []
-        for kolom in range(len(photo[-1][1][0][0])):
-            if photo[-1][1][0][rij,kolom] <= 0:
-                pixel = ray_to_rgb((photo[-1][1][1][rij][kolom], photo[-1][1][2][rij][kolom]), gargantua)
+        for kolom in range(len(photo[1][1][0][0])):
+            if photo[1][1][0][rij,kolom] <= 0:
+                pixel = ray_to_rgb((photo[1][1][1][rij][kolom], photo[1][1][2][rij][kolom]), gargantua)
             else:
-                pixel = ray_to_rgb((photo[-1][1][1][rij][kolom], photo[-1][1][2][rij][kolom]), saturn)
+                pixel = ray_to_rgb((photo[1][1][1][rij][kolom], photo[1][1][2][rij][kolom]), saturn)
 
             [[R, G, B]] = pixel
             row.append([R, G, B])
