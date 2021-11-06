@@ -522,33 +522,33 @@ if __name__ == '__main__':
     path = os.getcwd() 
     Par = [0.43/1.42953, 1, 0] # M, rho, a parameters wormhole
     #initial position in spherical coord
-    for radius in range(1, 10):
-        initial_q = np.array([radius, np.pi, np.pi/2])
-        Grid_dimension = '3D'
-        mode = 0
-        Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, Par, 0.01, 1500, initial_q, 20**2, 20**2, Grid_dimension, mode)
-        # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
-        # np.save('ray_solved', Motion1)
-        if mode ==  0:
-            plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path)
-        # plot_CM(CM2, ['H', 'b', 'B**2'])
+    #for radius in range(10, 20):
+    initial_q = np.array([7, np.pi, np.pi/2])
+    Grid_dimension = '3D'
+    mode = 0
+    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, Par, 0.01, 1500, initial_q, 20**2, 20**2, Grid_dimension, mode)
+    # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
+    # np.save('ray_solved', Motion1)
+    if mode ==  0:
+        plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path)
+    # plot_CM(CM2, ['H', 'b', 'B**2'])
     
-        #start = time.time()
-        #sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
-        #end = time.time()
-        #print('Tijdsduur = ' + str(end-start))
-        #print(sol)
-        #np.save('raytracer2', sol)`
+    #start = time.time()
+    #sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
+    #end = time.time()
+    #print('Tijdsduur = ' + str(end-start))
+    #print(sol)
+    #np.save('raytracer2', sol)`
     
-        if mode ==  0:
-            Geo_Sel = None
-            #Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
-            if Geo_Sel == None:
-                Geo_txt = ""
-            else:
-                Geo_txt = str(Geo_Sel)
-            gdsc(Motion1, Par, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path, Geo_Sel)
-        # gdsc(Motion2)
+    if mode ==  0:
+        Geo_Sel = None
+        #Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
+        if Geo_Sel == None:
+            Geo_txt = ""
+        else:
+            Geo_txt = str(Geo_Sel)
+        gdsc(Motion1, Par, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path, Geo_Sel)
+    # gdsc(Motion2)
     
-        cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(Par)+" "+str(initial_q)+".png"), 255*Photo1)
-        #cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
+    cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(Par)+" "+str(initial_q)+".png"), 255*Photo1)
+    #cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
