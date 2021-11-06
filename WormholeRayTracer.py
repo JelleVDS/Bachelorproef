@@ -492,7 +492,8 @@ def gdsc(Motion, name, path, select = None):
         ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
     else:
         for k in range(len(select)):
-            ax.plot(X[:,k], Y[:,k], Z[:,k])
+            ax.plot(X[:,k], Y[:,k], Z[:,k], label= str(select[k]))
+        ax.legend()
     # adds surface
 
     S_l = np.linspace(np.max(l), np.min(l), len(l)+1)
@@ -512,10 +513,10 @@ if __name__ == '__main__':
     path = os.getcwd()
     #initial position in spherical coord
     #for radius in range(1, 15):
-    initial_q = np.array([7, np.pi, np.pi/2])
+    initial_q = np.array([13, np.pi, np.pi/2])
     Grid_dimension = '3D'
     mode = 0
-    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, initial_q, 20**2, 20**2, Grid_dimension, mode)
+    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 3000, initial_q, 20**2, 20**2, Grid_dimension, mode)
     # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
     # np.save('ray_solved', Motion1)
     if mode ==  0:
@@ -531,7 +532,7 @@ if __name__ == '__main__':
 
     if mode ==  0:
         #Geo_Sel = None
-        Geo_Sel = [[377, 24], [54, 341], [200, 200], [86, 39], [390, 390]]
+        Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
         if Geo_Sel == None:
             Geo_txt = ""
         else:
