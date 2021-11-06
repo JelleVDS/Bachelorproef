@@ -137,12 +137,13 @@ def inn_mom_DNeg(S_n, S_sph):
     return p
 
 
-def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
+def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mode = 0):
     #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
     #       h: stepsize
     #       N amount of steps
     #       Ni pixels
-    #       loc: initial position
+    #       q0: initial position
+    #       mode: disable data collection
     #output: motion: 5D matrix the elements being [p, q] p, q being 3D matrices
     #        pict: 3D matrix (2D grid containg value in colorspace)
 
@@ -154,26 +155,32 @@ def Simulate_DNeg(integrator, h, N, q0, Nz = 14**2, Ny = 14**2):
     q = q1
     Motion = [[p, q]]
     CM = []
-    Grid = []
+    Grid = [np.zeros((Nz, Ny), dtype=bool)]
 
     start = time.time()
 
     # Integration
     for i in range(N):
         p, q , CM_i = integrator(p, q, Cst, h)
-        #Motion.append([p, q])
-        #CM.append(CM_i)
-        # change parameters grid here
-        Grid.append(Grid_constr(q, 8, 1, 0.01))
+        if mode == 0:
+            Motion.append([p, q])
+            CM.append(CM_i)
+        if Gr_D == '3D':
+            # change parameters grid here
+            Grid.append(Grid_constr_3D(q, 11, 1, 0.01, Grid[-1]))
 
-    #CM.append(DNeg_CM(p, q))
-    #Motion.append([p, q])
+    if mode == 0:
+        CM.append(DNeg_CM(p, q))
+        Motion.append([p, q])
     end = time.time()
 
     print(end - start)
 
     #pict = Make_Pict_RB(q)
-    Grid = np.any(np.array(Grid), axis=0)
+    if Gr_D == '3D':
+        Grid = np.any(np.array(Grid), axis=0)
+    else:
+        Grid = Grid_constr_2D(q, 11, 1, 0.05)
     pict =  Make_Pict_RGBP(q, Grid)
     #print(pict)
     # pict = 0
@@ -275,20 +282,13 @@ def Make_Pict_RB(q):
         pict.append(row)
     return cv2.cvtColor(np.array(pict, np.float32), 1)
 
-def Grid_constr(q, N_a, R, w):
-    # input: q: matrix with coordinates in configuration space on first row
-    #        N_a: subdivision angles
-    #        N_r: linspace radius to form grid
-    #        w: ratio
-    #output: 2D boolean array
+
+def Grid_constr_2D(q, N_a, R, w):
     Nz, Ny =  q[0].shape
     r, phi, theta = q
 
     Par_phi = np.linspace(0, 2*np.pi, N_a-1)
     Par_th = np.linspace(0, np.pi, N_a-1)
-
-    # Defines point on spherical grid
-    on_shell = (np.abs(R - np.mod(r, R)) < R*w) | (np.abs(np.mod(r, R) - R) < R*w)
 
     on_phi = np.any(
         np.abs(phi.reshape(1,Nz,Ny) -
@@ -300,8 +300,40 @@ def Grid_constr(q, N_a, R, w):
                np.transpose(np.tile(Par_th, (Nz, Ny,1)), (2,0,1)))
         < np.pi/N_a*w,  axis=0)
 
+    return on_phi | on_theta
+
+
+def Grid_constr_3D(q, N_a, R, w, Sl_old = None):
+    # input: q: matrix with coordinates in configuration space on first row
+    #        N_a: subdivision angles
+    #        N_r: linspace radius to form grid
+    #        w: ratio
+    #output: 2D boolean array
+    Nz, Ny =  q[0].shape
+    if np.any(Sl_old == None):
+        Sl_old = np.zeros((Nz, Ny), dtype=bool)
+    grid_slice = np.zeros((Nz, Ny), dtype=bool)
+    Sl_old_inv = ~Sl_old
+    r, phi, theta = q
+
+    Par_phi = np.linspace(0, 2*np.pi, N_a-1)
+    Par_th = np.linspace(0, np.pi, N_a-1)
+
+    # Defines point on spherical grid
+    rr = r[Sl_old_inv]
+    M = len(rr)
+    on_shell = (np.abs(R - np.mod(rr, R)) < R*w) | (np.abs(np.mod(rr, R) - R) < R*w)
+
+    on_phi = np.any(
+        np.abs(phi[Sl_old_inv].reshape(1,M) - np.tile(Par_phi, (M,1)).T)
+        < 2*np.pi/N_a*w, axis=0)
+
+    on_theta = np.any(
+        np.abs(theta[Sl_old_inv].reshape(1,M) - np.tile(Par_th, (M,1)).T)
+        < np.pi/N_a*w,  axis=0)
+
     # Boolean conditions for when rays lands on spherical grid
-    grid_slice = (on_phi & on_theta) | (on_phi & on_shell) | (on_shell & on_theta)
+    grid_slice[Sl_old_inv] = (on_phi & on_theta) | (on_phi & on_shell) | (on_shell & on_theta)
     return grid_slice
 
 
@@ -315,12 +347,12 @@ def Make_Pict_RGBP(q, Grid):
         row = []
 
         for i in range(len(q[0][0])):
-            r = q[0][j,i]
-            phi = q[1][j,i]
-            th = q[2][j,i]
             if Grid[j,i] == True:
                 row.append([0,0,0])
             else:
+                r = q[0][j,i]
+                phi = q[1][j,i]
+                th = q[2][j,i]
                 # colors based on sign azimutha angle and inclination
                 if phi > np.pi and th > np.pi/2:
                     row.append([0, 1, 0])
@@ -331,9 +363,9 @@ def Make_Pict_RGBP(q, Grid):
                 elif phi < np.pi and th < np.pi/2:
                     row.append([0.5, 0.5, 0])
 
-            if r < 0 and np.linalg.norm(row[-1]) != 0:
-                # invert color for points on oposite side of wormhol
-                row[-1] = [(1 - row[-1][k]) for k in range(3)]
+                if r < 0:
+                    # invert color for points on oposite side of wormhol
+                    row[-1] = [(1 - row[-1][k]) for k in range(3)]
 
         pict.append(np.array(row))
 
@@ -389,7 +421,7 @@ def DNeg_CM(p, q , M = 0.43/1.42953, rho = 1):
     return [H, b_C, B2_C]
 
 
-def plot_CM(CM, Name):
+def plot_CM(CM, Label, name, path):
     #input: 3D array containing energy of each ray over time, advancement in time on first row
     # plot the constants of motion over the partition of the rays
 
@@ -407,9 +439,10 @@ def plot_CM(CM, Name):
                 cl_i =cl[ind[ij]]
                 ax[k].plot(x, CM[k,:,i,j], color=cl_i)
         ax[k].set_yscale("log")
-        ax[k].set_title(Name[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
+        ax[k].set_title(Label[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
     plt.tight_layout()
-    plt.show()
+    plt.savefig(os.path.join(path, name), dpi=150)
+    #plt.show()
 
 
 def ray_spread(Nz, Ny):
@@ -426,18 +459,24 @@ def ray_spread(Nz, Ny):
     return cl, ind
 
 
-def gdsc(Motion):
+def gdsc(Motion, name, path, select = None):
     # input: Motion: 5D matrix, the elements being [p, q] with p, q as defined earlier
 
-    Motion = np.transpose(Motion, (1,2,0,3,4))
+    if np.any(select == None):
+        Motion = np.transpose(Motion, (1,2,0,3,4))
 
-    Ny, Nz =  Motion[0][0][0].shape
-    Ny_s = int(np.sqrt(Nz))
-    Nz_s = int(np.sqrt(Ny))
+        Ny, Nz =  Motion[0][0][0].shape
+        Ny_s = int(np.sqrt(Nz))
+        Nz_s = int(np.sqrt(Ny))
 
-    # Samples a uniform portion of the rays for visualisation
-    Sample = Motion[:, :, :, 1::Nz_s, 1::Ny_s]
-    cl, ind = ray_spread(Nz_s, Ny_s)
+        # Samples a uniform portion of the rays for visualisation
+        Sample = Motion[:, :, :, 1::Nz_s, 1::Ny_s]
+        cl, ind = ray_spread(Nz_s, Ny_s)
+    else:
+        Motion = np.transpose(Motion, (3,4,0,1,2))
+        Sample = np.transpose(
+            [Motion[tuple(select[k])] for k in range(len(select))]
+            , (2,3,1,0))
 
     p, q = Sample
     p_l, p_phi, p_th = p
@@ -447,22 +486,43 @@ def gdsc(Motion):
     X, Y = dneg_r(l)*np.cos(phi), dneg_r(l)*np.sin(phi)
     Z = Dia.imb_f_int(l)
 
-    for i in range(Nz_s):
-        for j in range(Ny_s):
-            ij = i + Nz_s*j
-            cl_i =cl[ind[ij]]
-            ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
+    if np.any(select == None):
+        for i in range(Nz_s):
+            for j in range(Ny_s):
+                ij = i + Nz_s*j
+                cl_i =cl[ind[ij]]
+                ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
+        ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
+    else:
+        for k in range(len(select)):
+            ax.plot(X[:,k], Y[:,k], Z[:,k])
     # adds surface
-    ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
-    Dia.inb_diagr([-10, 10], 1000, ax)
-    plt.show()
+
+    S_l = np.linspace(np.max(l), np.min(l), len(l)+1)
+    S_phi = np.linspace(0, 2*np.pi, len(l))
+    S_L, S_PHI = np.meshgrid(dneg_r(S_l), S_phi) # radius is r(l)
+
+    # tile want symmetrisch voor rotaties, onafhankelijk van phi
+    # Integraal voor Z richting zoals gedefinieerd in de paper
+    S_Z = np.tile(Dia.imb_f_int(S_l), (len(l), 1)) #z(l)
+
+    S_X, S_Y = S_L*np.cos(S_PHI), S_L*np.sin(S_PHI)
+    ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
+    plt.savefig(os.path.join(path, name), dpi=150)
+    #plt.show()
 
 if __name__ == '__main__':
+    path = os.getcwd()
     #initial position in spherical coord
-    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, np.array([14.5, np.pi, np.pi/2]), 20**2, 20**2)
+    #for radius in range(1, 15):
+    initial_q = np.array([7, np.pi, np.pi/2])
+    Grid_dimension = '2D'
+    mode = 0
+    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, initial_q, 20**2, 20**2, Grid_dimension, mode)
     # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
     # np.save('ray_solved', Motion1)
-    #plot_CM(CM1, ['H', 'b', 'B**2'])
+    if mode ==  0:
+        plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(initial_q)+".png", path)
     # plot_CM(CM2, ['H', 'b', 'B**2'])
 
     #start = time.time()
@@ -472,10 +532,11 @@ if __name__ == '__main__':
     #print(sol)
     #np.save('raytracer2', sol)`
 
-    #end_pos = Motion1[-1, 1]
-    #gdsc(Motion1)
+    if mode ==  0:
+        #Geo_Sel = None
+        Geo_Sel = [[377, 24], [54, 341], [200, 200], [86, 39], [390, 390]]
+        gdsc(Motion1, "Pictures/geodesics DNeg Sympl"+str(initial_q)+".png", path, Geo_Sel)
     # gdsc(Motion2)
 
-    #path = os.getcwd()
-    #cv2.imwrite(os.path.join(path, 'DNeg Sympl.png'), 255*Photo1)
-    # cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
+    cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(initial_q)+".png"), 255*Photo1)
+    #cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
