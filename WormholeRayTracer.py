@@ -283,6 +283,11 @@ def Make_Pict_RB(q):
 
 
 def Grid_constr_2D(q, N_a, R, w):
+    # input: q: matrix with coordinates in configuration space on first row
+    #        N_a: subdivision angles
+    #        N_r: linspace radius to form grid
+    #        w: ratio
+    #output: 2D boolean array
     Nz, Ny =  q[0].shape
     r, phi, theta = q
 
@@ -517,6 +522,7 @@ if __name__ == '__main__':
     path = os.getcwd()
     Par = [0.43/1.42953, 1, 0] # M, rho, a parameters wormhole
     #initial position in spherical coord
+<<<<<<< HEAD
     #for radius in range(1, 15):
     # initial_q = np.array([13, np.pi, np.pi/2])
     Grid_dimension = '2D'
@@ -524,19 +530,27 @@ if __name__ == '__main__':
     initial_q = np.array([7, np.pi, np.pi/2])
     Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, Par, 0.01, 3000, initial_q, 20**2, 20**2, Grid_dimension, mode)
     np.save('ray_solved', Motion1[-1])
+=======
+    #for radius in range(10, 20):
+    initial_q = np.array([7, np.pi, np.pi/2])
+    Grid_dimension = '3D'
+    mode = 0
+    Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, Par, 0.01, 1500, initial_q, 20**2, 20**2, Grid_dimension, mode)
+>>>>>>> 257cd3e24e0ae17c66f7e3771efa05ddc5a56e08
     # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
     #np.save('ray_solved', Motion1[-1])
     # np.save('ray_solved', Motion1)
     # if mode ==  0:
     #     plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path)
     # plot_CM(CM2, ['H', 'b', 'B**2'])
-
+    
     #start = time.time()
     #sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
     #end = time.time()
     #print('Tijdsduur = ' + str(end-start))
     #print(sol)
     #np.save('raytracer2', sol)`
+<<<<<<< HEAD
 
     # if mode ==  0:
     #     Geo_Sel = None
@@ -548,5 +562,18 @@ if __name__ == '__main__':
     #     gdsc(Motion1, Par, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path, Geo_Sel)
     # # gdsc(Motion2)
 
+=======
+    
+    if mode ==  0:
+        Geo_Sel = None
+        #Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
+        if Geo_Sel == None:
+            Geo_txt = ""
+        else:
+            Geo_txt = str(Geo_Sel)
+        gdsc(Motion1, Par, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path, Geo_Sel)
+    # gdsc(Motion2)
+    
+>>>>>>> 257cd3e24e0ae17c66f7e3771efa05ddc5a56e08
     cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(Par)+" "+str(initial_q)+".png"), 255*Photo1)
     #cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
