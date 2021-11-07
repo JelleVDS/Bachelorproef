@@ -2,6 +2,7 @@
 .DS_Store
 .ipynb_checkpoints/DNeg symplectic integrator coeffiecients-checkpoint.ipynb
 ray_solved.npy
+raytracer2.npy
 Saturn.jpg
 *.jpg
 *.npy
