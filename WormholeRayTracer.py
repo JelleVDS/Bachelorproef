@@ -13,8 +13,6 @@ import scipy.integrate as integr
 
 
 #Dit is op de master branch:
-
-
 def dneg_r(y, M=0.43/1.42953 , rho=1, a=0):
     # input: scalars
     # output: scalar
@@ -24,7 +22,6 @@ def dneg_r(y, M=0.43/1.42953 , rho=1, a=0):
     r = rho + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
 
     return r
-
 
 def dneg_dr_dl(y, M=0.43/1.42953, a=0):
     # input:scalars
@@ -47,7 +44,7 @@ def dneg_d2r_dl2(y, M=0.43/1.42953, a=0):
     return d2r_dl2
 
 
-def screen_cart(Nz, Ny, L1 = 1, L2=1):
+def screen_cart(Nz, Ny, L1 = 1, L2=2):
      # input: Nz amount of pixels on vertical side screen
      #        Ny amount pixels horizontal side screen ,
      #        L = physical width and lenght of the screen.
@@ -286,7 +283,14 @@ def rotate_ray(ray, Nz, Ny):
 
             phi_rot     = height
             theta_rot   = width
-            loc = np.array([l, phi + phi_rot, theta + theta_rot])
+
+            phi = phi + phi_rot
+            if phi > 2*np.pi:
+                phi = phi - 2*np.pi
+            theta = theta + theta_rot
+            if theta > np.pi:
+                theta = theta - np.pi
+            loc = np.array([l, phi, theta])
             pic[z][y] = loc
 
     return pic
@@ -562,15 +566,16 @@ if __name__ == '__main__':
     # if mode ==  0:
     #     plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(initial_q)+".png", path)
     # plot_CM(CM2, ['H', 'b', 'B**2'])
-    Nz = 1024
-    Ny = 2048
+    Nz = 200
+    Ny = 400
     start = time.time()
-    sol = simulate_raytracer(300000, [14.5, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
+    sol = simulate_raytracer(20, [17.5, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
     end = time.time()
     print('Tijdsduur = ' + str(end-start))
     momenta, position = sol
-    print(position)
+
     picture = rotate_ray(position, Nz, Ny)
+    print(position)
     print('saving location...')
     np.save('raytracer2', picture)
     print('location saved!')

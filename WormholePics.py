@@ -74,7 +74,7 @@ def decide_universe(photo, saturn, gargantua):
             - gargantua: spherical picture of the other side
     Output: - picture:   Matrix with RGB values for cv2
     """
-    print('here:3')
+    # print('here:3')
     picture = []
     for rij in range(len(photo)):
         row = []
@@ -90,7 +90,7 @@ def decide_universe(photo, saturn, gargantua):
     # img = cv2.cvtColor(np.array(picture, np.float32), 1)
     return np.array(picture)
 
-    print('here 4')
+    # print('here 4')
 
 def distance(x, position):
     """
@@ -100,7 +100,6 @@ def distance(x, position):
 
     return dist
 
-print('here 5')
 
 def ray_to_rgb(position, saturn):
     """
@@ -118,7 +117,6 @@ def ray_to_rgb(position, saturn):
 
     return RGB
 
-print('here 6')
 
 saturn      = photo_to_sphere(img_saturn)
 print('Saturn image loaded.')
@@ -134,5 +132,5 @@ pic = decide_universe(raytracer, saturn, gargantua)
 print('Image placing completed.')
 print('Saving picture')
 path = os.getcwd()
-cv2.imwrite(os.path.join(path, 'testpic.png'), pic)
+cv2.imwrite(os.path.join(path, 'Interstellar_17_20.png'), pic)
 print('Picture saved')
