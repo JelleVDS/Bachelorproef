@@ -6,8 +6,8 @@ import os
 
 # Inladen foto's
 print('Reading in pictures...')
-img_saturn    = cv2.imread('four.png')
-img_gargantua = cv2.imread('negfour.png')
+img_saturn    = cv2.imread('four400.png')
+img_gargantua = cv2.imread('negfour400.png')
 # print('here1')
 # print(img_gargantua.shape)
 # print(len(img_saturn))
@@ -132,5 +132,5 @@ pic = decide_universe(raytracer, saturn, gargantua)
 print('Image placing completed.')
 print('Saving picture')
 path = os.getcwd()
-cv2.imwrite(os.path.join(path, 'Interstellar_17_20.png'), pic)
+cv2.imwrite(os.path.join(path, 'Grid.png'), pic)
 print('Picture saved')
