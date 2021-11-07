@@ -569,7 +569,7 @@ if __name__ == '__main__':
     Nz = 200
     Ny = 400
     start = time.time()
-    sol = simulate_raytracer(20, [17.5, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
+    sol = simulate_raytracer(20, [124, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
     end = time.time()
     print('Tijdsduur = ' + str(end-start))
     momenta, position = sol
@@ -579,6 +579,11 @@ if __name__ == '__main__':
     print('saving location...')
     np.save('raytracer2', picture)
     print('location saved!')
+
+    print('Saving picture')
+    path = os.getcwd()
+    cv2.imwrite(os.path.join(path, 'picture2.png'), picture)
+    print('Picture saved')
 
     # print(picture)
     # if mode ==  0:
