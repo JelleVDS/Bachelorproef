@@ -145,7 +145,7 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     #output: motion: 5D matrix the elements being [p, q] p, q being 3D matrices
     #        pict: 3D matrix (2D grid containg value in colorspace)
 
-    S_c = screen_cart(Nz, Ny)
+    S_c = screen_cart(Nz, Ny, 1, 1)
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
@@ -184,8 +184,8 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
 
 
 def diff_equations(t, variables):
-    l, phi, theta, p_l, p_phi, p_th = variables
-    r = dneg_r(l)
+    l, phi, theta, p_l, p_phi, p_th, M, rho, a = variables
+    r = dneg_r(l, M, rho, a)
     rec_r = 1/r
     rec_r_2 = rec_r**2
     rec_r_3 = rec_r_2*rec_r
@@ -200,20 +200,21 @@ def diff_equations(t, variables):
     dl_dt       = p_l
     dtheta_dt   = p_th * rec_r_2
     dphi_dt     = b / sin2 * rec_r_2
-    dpl_dt      = B**2 * (dneg_dr_dl(l)) * rec_r_3
+    dpl_dt      = B**2 * (dneg_dr_dl(l, M, a)) * rec_r_3
     dpth_dt     = b ** 2 * cos1 / sin3 * rec_r_2
 
-    diffeq = [-dl_dt, -dphi_dt, -dtheta_dt, -dpl_dt, np.zeros(dl_dt.shape), -dpth_dt]
+    diffeq = [-dl_dt, -dphi_dt, -dtheta_dt, -dpl_dt, np.zeros(dl_dt.shape), -dpth_dt, 0, 0, 0]
     return diffeq
 
 
-def simulate_raytracer(t_end, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
+def simulate_raytracer(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
     Input:  - methode: method used for solving the ivp (standerd runge-kutta of fourth order)
             - h: stepsize
             - N: number of steps
+            - Par: parameters wormhole
             - q0: initial position of the camera
             - Nz: number of vertical pixels
             - Ny: number of horizontal pixels
@@ -226,6 +227,7 @@ def simulate_raytracer(t_end, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
+    M, rho, a = Par
     p1, p2, p3 = p
     q1, q2, q3 = q0
     endpos = []
@@ -237,7 +239,7 @@ def simulate_raytracer(t_end, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     for teller2 in range(int(len(p1[0])/2), len(p1[0])):
 
         # start_it = time.time()
-        initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2]])
+        initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
         sol            = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
         #Reads out the data from the solution
         l_end       = sol.y[0][-1]
@@ -496,7 +498,7 @@ def ray_spread(Nz, Ny):
     # input: Ny: amount of horizontal arrays, Nz: amount of vertical arrays
     # output: cl: color based on deviation of the norm of a ray compared to direction obeserver is facing
             #ind ind of original ray mapped to colormap
-    S_c = screen_cart(Nz, Ny)
+    S_c = screen_cart(Nz, Ny, 1, 1)
     S_cT = np.transpose(S_c, (2,0,1))
     n = np.linalg.norm(S_cT, axis=0)
     n_u, ind = np. unique(n, return_inverse=True)
@@ -564,71 +566,75 @@ def gdsc(Motion, Par, name, path, select = None):
 if __name__ == '__main__':
     path = os.getcwd()
     Par = [0.43/1.42953, 1, 0] # M, rho, a parameters wormhole
+    Integrator = 0
     #initial position in spherical coord
     #for radius in range(1, 15):
 # <<<<<<< HEAD
-    # initial_q = np.array([7, np.pi, np.pi/2])
-    # Grid_dimension = '2D'
-    # mode = 0
-    # Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, initial_q, 10, 10, Grid_dimension, mode)
-    # print(Motion1[-1])
-    # np.save('ray_solved', Motion1)
-    # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, [7, np.pi, np.pi/2], 10, 10)
-    # print(Motion2[-1][1])
-    # if mode ==  0:
-    #     plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(initial_q)+".png", path)
-    # plot_CM(CM2, ['H', 'b', 'B**2'])
-    Nz = 200
-    Ny = 400
-    start = time.time()
-    sol = simulate_raytracer(22, [20, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
-    end = time.time()
-    print('Tijdsduur = ' + str(end-start))
-    momenta, position = sol
+    
+    if Integrator == 1:
+        initial_q = np.array([[17, np.pi, np.pi/2]])
+        Grid_dimension = '3D'
+        mode = 1
+        Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, Par, 0.01, 3000, initial_q, 20**2, 20**2, Grid_dimension, mode)
+        #np.save('raytracer1', np.transpose(Motion1[-1][1], (1, 2, 0)))
+        # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, [7, np.pi, np.pi/2], 10, 10)
+        if mode == 0:
+            plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(initial_q)+".png", path)
+         #plot_CM(CM2, ['H', 'b', 'B**2'])
+         
+    if Integrator == 0:
+        Nz = 200
+        Ny = 400
+        start = time.time()
+        sol = simulate_raytracer(22, Par, [20, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
+        end = time.time()
+        print('Tijdsduur = ' + str(end-start))
+        momenta, position = sol
 
-    picture = rotate_ray(position, Nz, Ny)
-    print(position)
-    print('saving location...')
-    np.save('raytracer2', picture)
-    print('location saved!')
+        picture = rotate_ray(position, Nz, Ny)
+        print(position)
+        print('saving location...')
+        np.save('raytracer2', picture)
+        print('location saved!')
 
-    print('Saving picture')
-    path = os.getcwd()
-    cv2.imwrite(os.path.join(path, 'picture2.png'), picture)
-    print('Picture saved')
+        print('Saving picture')
+        path = os.getcwd()
+        cv2.imwrite(os.path.join(path, 'picture2.png'), picture)
+        print('Picture saved')
 
-    # print(picture)
-    # if mode ==  0:
-    #     #Geo_Sel = None
-    #     Geo_Sel = [[377, 24], [54, 341], [200, 200], [86, 39], [390, 390]]
-    #     gdsc(Motion1, "Pictures/geodesics DNeg Sympl"+str(initial_q)+".png", path, Geo_Sel)
-    # gdsc(Motion2)
+    #print(picture)
+    if Integrator == 1:
+        if mode ==  0:
+            Geo_Sel = None
+            #Geo_Sel = [[377, 24], [54, 341], [200, 200], [86, 39], [390, 390]]
+            gdsc(Motion1, Par, "Pictures/geodesics DNeg Sympl"+str(initial_q)+".png", path, Geo_Sel)
+            #gdsc(Motion2)
 
-    # cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(initial_q)+".png"), 255*Photo1)
-    # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
-    #np.save('ray_solved', Motion1[-1])
-    # np.save('ray_solved', Motion1)
-    # if mode ==  0:
-    #     plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path)
-    # plot_CM(CM2, ['H', 'b', 'B**2'])
-
-    #start = time.time()
-    #sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
-    #end = time.time()
-    #print('Tijdsduur = ' + str(end-start))
-    #print(sol)
-    #np.save('raytracer2', sol)`
-
-    # if mode ==  0:
-    #     Geo_Sel = None
-    #     #Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
-    #     if Geo_Sel == None:
-    #         Geo_txt = ""
-    #     else:
-    #         Geo_txt = str(Geo_Sel)
-    #     gdsc(Motion1, Par, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path, Geo_Sel)
-    # # gdsc(Motion2)
-
-    # cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(Par)+" "+str(initial_q)+".png"), 255*Photo1)
-
-    #cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
+        # cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(initial_q)+".png"), 255*Photo1)
+        # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
+        #np.save('ray_solved', Motion1[-1])
+        # np.save('ray_solved', Motion1)
+        if mode ==  0:
+             plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path)
+        #plot_CM(CM2, ['H', 'b', 'B**2'])
+    
+        #start = time.time()
+        #sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
+        #end = time.time()
+        #print('Tijdsduur = ' + str(end-start))
+        #print(sol)
+        #np.save('raytracer2', sol)`
+    
+        if mode ==  0:
+             Geo_Sel = None
+             #Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
+             if Geo_Sel == None:
+                 Geo_txt = ""
+             else:
+                 Geo_txt = str(Geo_Sel)
+             gdsc(Motion1, Par, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path, Geo_Sel)
+        # # gdsc(Motion2)
+    
+        cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(Par)+" "+str(initial_q)+".png"), 255*Photo1)
+    
+        #cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
