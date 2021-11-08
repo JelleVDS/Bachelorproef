@@ -19,7 +19,7 @@ def dneg_r(y, M=0.43/1.42953 , rho=1, a=0):
     # define r(l) for a DNeg wormhole without gravity
 
     x = 2*(np.abs(y) - a)/(np.pi*M)
-    r = rho + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
+    r = rho + M*(x*np.arctan2(2*(np.abs(y) - a), np.pi*M) - 0.5*np.log(1 + x**2))
 
     return r
 
@@ -28,8 +28,8 @@ def dneg_dr_dl(y, M=0.43/1.42953, a=0):
     # output: scalar
     # define derivative of r to l
 
-    x = 2*(a-np.abs(y))/(np.pi*M)
-    dr_dl = -2/np.pi*np.arctan(-x)*np.sign(y)
+    x = 2*(np.abs(y)-a)/(np.pi*M)
+    dr_dl = (2/np.pi)*np.arctan(x)*np.sign(y)
 
     return dr_dl
 
@@ -189,25 +189,25 @@ def diff_equations(t, variables):
     rec_r = 1/r
     rec_r_2 = rec_r**2
     rec_r_3 = rec_r_2*rec_r
-    sin1 = np.sin(theta)
+    rec_sin1 = 1/np.sin(theta)
     cos1 = np.cos(theta)
-    sin2 = sin1**2
-    sin3 = sin1*sin2
-    B = p_th**2 + p_phi**2/sin2
+    rec_sin2 = rec_sin1**2
+    rec_sin3 = rec_sin1*rec_sin2
+    B = p_th**2 + p_phi**2 * rec_sin2
     b = p_phi
 
-    #Using the hamiltonian equations of motion
+    # Using the hamiltonian equations of motion
     dl_dt       = p_l
     dtheta_dt   = p_th * rec_r_2
-    dphi_dt     = b / sin2 * rec_r_2
+    dphi_dt     = b * rec_sin2 * rec_r_2
     dpl_dt      = B**2 * (dneg_dr_dl(l)) * rec_r_3
-    dpth_dt     = b ** 2 * cos1 / sin3 * rec_r_2
+    dpth_dt     = b ** 2 * cos1 * rec_sin3 * rec_r_2
 
     diffeq = [-dl_dt, -dphi_dt, -dtheta_dt, -dpl_dt, np.zeros(dl_dt.shape), -dpth_dt]
     return diffeq
 
 
-def simulate_raytracer(t_end, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
+def simulate_radius(t_end, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
@@ -237,7 +237,7 @@ def simulate_raytracer(t_end, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     for teller2 in range(int(len(p1[0])/2), len(p1[0])):
 
         # start_it = time.time()
-        initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2]])
+        initial_values = np.array([q1, q2, q3, p1[teller2][teller2], p2[teller2][teller2], p3[teller2][teller2]])
         sol            = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
         #Reads out the data from the solution
         l_end       = sol.y[0][-1]
@@ -265,6 +265,67 @@ def simulate_raytracer(t_end, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
         endmom.append(np.array([pl_end, pphi_end, ptheta_end]))
     return np.array(endmom), np.array(endpos)
 
+def simulate_raytracer(t_end, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
+    """
+    Solves the differential equations using a build in solver (solve_ivp) with
+    specified method.
+    Input:  - methode: method used for solving the ivp (standerd runge-kutta of fourth order)
+            - h: stepsize
+            - N: number of steps
+            - q0: initial position of the camera
+            - Nz: number of vertical pixels
+            - Ny: number of horizontal pixels
+    Output: - sol.y: a matrix with each row containing the initial and end value
+              for one ray: [l, phi, theta, p_l, p_phi, p_theta]
+    """
+    print('Initializing screen and calculating initial condition...')
+    # end = int(np.ceil(np.sqrt(Ny**2+Nz**2)))
+    S_c = screen_cart(Nz, Ny)
+    S_cT = np.transpose(S_c, (2,0,1))
+    S_sph = cart_Sph(S_cT)
+    p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
+    p1, p2, p3 = p
+    q1, q2, q3 = q0
+    endpos = []
+    endmom = []
+    print(len(p1))
+    print(len(p1[0]))
+
+    for teller1 in range(0, len(p1)):
+        row_pos = []
+        row_mom = []
+        start_it = time.time()
+        for teller2 in range(0, len(p1[0])):
+
+            start_it = time.time()
+            initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2]])
+            sol            = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
+            #Reads out the data from the solution
+            l_end       = sol.y[0][-1]
+            phi_end     = sol.y[1][-1]
+            while phi_end>2*np.pi:
+                phi_end = phi_end - 2*np.pi
+            while phi_end<0:
+                phi_end = phi_end + 2*np.pi
+            theta_end   = sol.y[2][-1]
+            while theta_end > np.pi:
+                theta_end = theta_end - np.pi
+            while theta_end < 0:
+                theta_end = theta_end + np.pi
+            pl_end      = sol.y[3][-1]
+            pphi_end    = sol.y[4][-1]
+            ptheta_end  = sol.y[5][-1]
+            # adds local solution to row
+            row_pos.append(np.array([l_end, phi_end, theta_end]))
+            row_mom.append(np.array([pl_end, pphi_end, ptheta_end]))
+
+        # adds row to matrix
+        endpos.append(np.array(row_pos))
+        endmom.append(np.array(row_mom))
+        end_it = time.time()
+        duration = end_it - start_it
+        print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
+    return np.array(endmom), np.array(endpos)
 
 
 def rotate_ray(ray, Nz, Ny):
@@ -566,36 +627,38 @@ if __name__ == '__main__':
     Par = [0.43/1.42953, 1, 0] # M, rho, a parameters wormhole
     #initial position in spherical coord
     #for radius in range(1, 15):
-# <<<<<<< HEAD
     # initial_q = np.array([7, np.pi, np.pi/2])
     # Grid_dimension = '2D'
     # mode = 0
-    # Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, 0.01, 1500, initial_q, 10, 10, Grid_dimension, mode)
-    # print(Motion1[-1])
-    # np.save('ray_solved', Motion1)
+    # Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, Par, 0.01, 30000, initial_q, 25, 50, Grid_dimension, mode)
+    # # print(Motion1[-1])
+    # print(Motion1[-1][1])
     # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, [7, np.pi, np.pi/2], 10, 10)
     # print(Motion2[-1][1])
     # if mode ==  0:
     #     plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(initial_q)+".png", path)
     # plot_CM(CM2, ['H', 'b', 'B**2'])
-    Nz = 200
-    Ny = 400
+
+    Nz = 100
+    Ny = 200
     start = time.time()
-    sol = simulate_raytracer(22, [20, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
+    sol = simulate_raytracer(1000, [100, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
     end = time.time()
     print('Tijdsduur = ' + str(end-start))
     momenta, position = sol
-
-    picture = rotate_ray(position, Nz, Ny)
+    np.save('raytracer2', position)
     print(position)
-    print('saving location...')
-    np.save('raytracer2', picture)
-    print('location saved!')
+    #
+    # picture = rotate_ray(position, Nz, Ny)
+    # print(position)
+    # print('saving location...')
+    # np.save('raytracer2', picture)
+    # print('location saved!')
 
-    print('Saving picture')
-    path = os.getcwd()
-    cv2.imwrite(os.path.join(path, 'picture2.png'), picture)
-    print('Picture saved')
+    # print('Saving picture...')
+    # path = os.getcwd()
+    # cv2.imwrite(os.path.join(path, 'picture2.png'), picture)
+    # print('Picture saved')
 
     # print(picture)
     # if mode ==  0:
