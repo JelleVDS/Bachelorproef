@@ -242,15 +242,15 @@ def simulate_raytracer(t_end, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
         #Reads out the data from the solution
         l_end       = sol.y[0][-1]
         phi_end     = sol.y[1][-1]
-        while phi_end>2*np.pi:
-            phi_end = phi_end - 2*np.pi
-        while phi_end<0:
-            phi_end = phi_end + 2*np.pi
+        # while phi_end>2*np.pi:
+        #     phi_end = phi_end - 2*np.pi
+        # while phi_end<0:
+        #     phi_end = phi_end + 2*np.pi
         theta_end   = sol.y[2][-1]
-        while theta_end > np.pi:
-            theta_end = theta_end - np.pi
-        while theta_end < 0:
-            theta_end = theta_end + np.pi
+        # while theta_end > np.pi:
+        #     theta_end = theta_end - np.pi
+        # while theta_end < 0:
+        #     theta_end = theta_end + np.pi
         pl_end      = sol.y[3][-1]
         pphi_end    = sol.y[4][-1]
         ptheta_end  = sol.y[5][-1]
