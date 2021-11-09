@@ -403,10 +403,12 @@ def Grid_constr_2D(q, N_a, R, w):
     #output: 2D boolean array
     Nz, Ny =  q[0].shape
     r, phi, theta = q
-
+    
+    # subdivides theta and phi
     Par_phi = np.linspace(0, 2*np.pi, N_a-1)
     Par_th = np.linspace(0, np.pi, N_a-1)
-
+    
+    # Defines point on polar grid
     on_phi = np.any(
         np.abs(phi.reshape(1,Nz,Ny) -
                np.transpose(np.tile(Par_phi, (Nz, Ny,1)), (2,0,1)))
@@ -431,7 +433,8 @@ def Grid_constr_3D(q, N_a, R, w, Slice = None):
         Slice = np.zeros((Nz, Ny), dtype=bool)
     Slice_inv = ~Slice
     r, phi, theta = q
-
+    
+    # subdivides theta and phi
     Par_phi = np.linspace(0, 2*np.pi, N_a-1)
     Par_th = np.linspace(0, np.pi, N_a-1)
 
@@ -556,7 +559,10 @@ def plot_CM(CM, Label, name, path):
                 cl_i =cl[ind[ij]]
                 ax[k].plot(x, CM[k,:,i,j], color=cl_i)
         ax[k].set_yscale("log")
-        ax[k].set_title(Label[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
+        #ax[k].set_title(Label[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
+        ax[k].set_xlabel("number of timesteps taken")
+        ax[k].set_ylabel(Label[k])
+        ax[k].set_title(Label[k]+" summed over a subdivision of rays")
     plt.tight_layout()
     plt.savefig(os.path.join(path, name), dpi=150)
     #plt.show()
@@ -576,20 +582,29 @@ def ray_spread(Nz, Ny):
     return cl, ind
 
 
-def gdsc(Motion, Par, name, path, select = None):
+def hgdsc(Motion, Par, name, path, select = None, reduce = False):
     # input: Motion: 5D matrix, the elements being [p, q] with p, q as defined earlier
+    #       Par: parameters wormhole
+    #       Name: picture/filename
+    #       Path: directory
+    #       select: Give a list of 2D indices to plot only specific geodesiscs
+    #       reduce: if true sample geodescics uniformly
     M, rho, a = Par
 
     if np.any(select == None):
-        Motion = np.transpose(Motion, (1,2,0,3,4))
-
+        Motion = np.transpose(Motion, (1,2,0,3,4)) 
+        
         Ny, Nz =  Motion[0][0][0].shape
-        Ny_s = int(np.sqrt(Nz))
-        Nz_s = int(np.sqrt(Ny))
-
-        # Samples a uniform portion of the rays for visualisation
-        Sample = Motion[:, :, :, 1::Nz_s, 1::Ny_s]
-        cl, ind = ray_spread(Nz_s, Ny_s)
+        if reduce == True:
+            Ny_s = int(np.sqrt(Nz))
+            Nz_s = int(np.sqrt(Ny))
+    
+            # Samples a uniform portion of the rays for visualisation
+            Sample = Motion[:, :, :, 1::Nz_s, 1::Ny_s]
+            cl, ind = ray_spread(Nz_s, Ny_s)
+        else:
+            Sample = Motion
+            cl, ind = ray_spread(Nz, Ny)
     else:
         Motion = np.transpose(Motion, (3,4,0,1,2))
         Sample = np.transpose(
@@ -611,10 +626,11 @@ def gdsc(Motion, Par, name, path, select = None):
                 ij = i + Nz_s*j
                 cl_i =cl[ind[ij]]
                 ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
-        ax.set_title("Donker pixels binnenkant scherm, lichte pixels buitenkant")
+        ax.set_title("Geodesics")
     else:
         for k in range(len(select)):
             ax.plot(X[:,k], Y[:,k], Z[:,k], label= str(select[k]))
+        ax.set_title("Geodesics corresponding to labeled pixel")
         ax.legend()
     # adds surface
 
@@ -630,6 +646,71 @@ def gdsc(Motion, Par, name, path, select = None):
     ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
     plt.savefig(os.path.join(path, name), dpi=150)
     #plt.show()
+    
+    
+def gdsc(Motion, Par, name, path, select = None, reduce = False):
+    # input: Motion: 5D matrix, the elements being [p, q] with p, q as defined earlier
+    #       Par: parameters wormhole
+    #       Name: picture/filename
+    #       Path: directory
+    #       select: Give a list of 2D indices to plot only specific geodesiscs
+    #       reduce: if true sample geodescics uniformly
+    M, rho, a = Par
+    
+    if np.any(select == None):
+        Motion = np.transpose(Motion, (1,2,0,3,4))
+
+        Ny, Nz =  Motion[0][0][0].shape
+        if reduce == True:
+            Ny_s = int(np.sqrt(Nz))
+            Nz_s = int(np.sqrt(Ny))
+        
+            # Samples a uniform portion of the rays for visualisation
+            Sample = Motion[:, :, :, 1::Nz_s, 1::Ny_s]
+            cl, ind = ray_spread(Nz_s, Ny_s)
+        else:
+            Sample = Motion
+            cl, ind = ray_spread(Nz, Ny)
+    else:
+        Motion = np.transpose(Motion, (3,4,0,1,2))
+        Sample = np.transpose(
+            [Motion[tuple(select[k])] for k in range(len(select))]
+            , (2,3,1,0))
+
+    p, q = Sample
+    p_l, p_phi, p_th = p
+    l, phi, theta = q
+    # caluclates coordinates in inbedded space
+    ax = plt.figure().add_subplot(projection='3d')
+    r = dneg_r(l, M, rho, a)
+    X, Y = r*np.cos(phi), r*np.sin(phi)
+    Z = Dia.imb_f_int(l, Par)
+
+    if np.any(select == None):
+        for i in range(Nz_s):
+            for j in range(Ny_s):
+                ij = i + Nz_s*j
+                cl_i =cl[ind[ij]]
+                ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
+        ax.set_title("Geodesics")
+    else:
+        for k in range(len(select)):
+            ax.plot(X[:,k], Y[:,k], Z[:,k], label= str(select[k]))
+        ax.set_title("Geodesics corresponding to labeled pixel")
+        ax.legend()
+    # adds surface
+
+    S_l = np.linspace(np.max(l), np.min(l), len(l)+1)
+    S_phi = np.linspace(0, 2*np.pi, len(l))
+    S_L, S_PHI = np.meshgrid(dneg_r(S_l, M, rho, a), S_phi) # radius is r(l)
+
+    # tile want symmetrisch voor rotaties, onafhankelijk van phi
+    # Integraal voor Z richting zoals gedefinieerd in de paper
+    S_Z = np.tile(Dia.imb_f_int(S_l, Par), (len(l), 1)) #z(l)
+
+    S_X, S_Y = S_L*np.cos(S_PHI), S_L*np.sin(S_PHI)
+    ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
+    plt.savefig(os.path.join(path, name), dpi=150)
 
 def wormhole_with_symmetry(steps=22, initialcond = [20, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 1, 0]):
     """
@@ -650,21 +731,18 @@ def wormhole_with_symmetry(steps=22, initialcond = [20, np.pi, np.pi/2], Nz=200,
 if __name__ == '__main__':
     path = os.getcwd()
     Par = [0.43/1.42953, 1, 0] # M, rho, a parameters wormhole
-    Integrator = 0
+    Integrator = 1
     #initial position in spherical coord
     #for radius in range(1, 15):
 # <<<<<<< HEAD
 
     if Integrator == 1:
         initial_q = np.array([[17, np.pi, np.pi/2]])
-        Grid_dimension = '3D'
-        mode = 1
-        Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, Par, 0.01, 3000, initial_q, 20**2, 20**2, Grid_dimension, mode)
+        Grid_dimension = '2D'
+        mode = 0
+        Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, Par, 0.02, 1500, initial_q, 20**2, 20**2, Grid_dimension, mode)
         #np.save('raytracer1', np.transpose(Motion1[-1][1], (1, 2, 0)))
         # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, [7, np.pi, np.pi/2], 10, 10)
-        if mode == 0:
-            plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(initial_q)+".png", path)
-         #plot_CM(CM2, ['H', 'b', 'B**2'])
 
     if Integrator == 0:
         Nz = 300
@@ -691,16 +769,6 @@ if __name__ == '__main__':
     #print(picture)
     if Integrator == 1:
         if mode ==  0:
-            Geo_Sel = None
-            #Geo_Sel = [[377, 24], [54, 341], [200, 200], [86, 39], [390, 390]]
-            gdsc(Motion1, Par, "Pictures/geodesics DNeg Sympl"+str(initial_q)+".png", path, Geo_Sel)
-            #gdsc(Motion2)
-
-        # cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(initial_q)+".png"), 255*Photo1)
-        # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, 9, 20**2, 20**2)
-        #np.save('ray_solved', Motion1[-1])
-        # np.save('ray_solved', Motion1)
-        if mode ==  0:
              plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path)
         #plot_CM(CM2, ['H', 'b', 'B**2'])
 
@@ -712,8 +780,8 @@ if __name__ == '__main__':
         #np.save('raytracer2', sol)`
 
         if mode ==  0:
-             Geo_Sel = None
-             #Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
+             #Geo_Sel = None
+             Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
              if Geo_Sel == None:
                  Geo_txt = ""
              else:
