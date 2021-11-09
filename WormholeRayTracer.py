@@ -201,7 +201,7 @@ def diff_equations(t, variables):
     dtheta_dt   = p_th * rec_r_2
 
     dphi_dt     = b * rec_sin2 * rec_r_2
-    dpl_dt      = B**2 * (dneg_dr_dl(l)) * rec_r_3
+    dpl_dt      = B * (dneg_dr_dl(l)) * rec_r_3
     dpth_dt     = b ** 2 * cos1 * rec_sin3 * rec_r_2
 
     diffeq = [-dl_dt, -dphi_dt, -dtheta_dt, -dpl_dt, np.zeros(dl_dt.shape), -dpth_dt, 0, 0, 0]
@@ -353,12 +353,17 @@ def rotate_ray(ray, Nz, Ny):
             z = int(height + Nz/2)
             y = int(width + Ny/2)
             l, phi, theta = ray[r]
+            # l_perp, phi_perp, theta_perp = ray[int(abs(width))]
 
-            phi_rot     = width*(2*np.pi/Nz)
-            theta_rot   = height*(np.pi/Ny)
+            #Flip screen when left side
+            if width < 0:
+                phi = -phi
 
-            phi = phi + phi_rot
-            theta = theta + theta_rot
+            #recenter
+            # phi = phi + np.pi
+
+            theta = z*(np.pi/Nz)
+            #switch for right side of screen
             while phi>2*np.pi:
                 phi = phi - 2*np.pi
             while phi<0:
@@ -626,6 +631,22 @@ def gdsc(Motion, Par, name, path, select = None):
     plt.savefig(os.path.join(path, name), dpi=150)
     #plt.show()
 
+def wormhole_with_symmetry(steps=22, initialcond = [20, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 1, 0]):
+    """
+    One function to calculate the ray and rotate it to a full picture with the
+    given parameters
+    """
+    start = time.time()
+    sol = simulate_radius(steps, Par, initialcond, Nz, Ny, methode = 'RK45')
+    end = time.time()
+    print('Tijdsduur = ' + str(end-start))
+    momenta, position = sol
+
+    print('Rotating ray...')
+    picture = rotate_ray(position, Nz, Ny)
+    print('Ray rotated!')
+    return picture
+
 if __name__ == '__main__':
     path = os.getcwd()
     Par = [0.43/1.42953, 1, 0] # M, rho, a parameters wormhole
@@ -646,24 +667,26 @@ if __name__ == '__main__':
          #plot_CM(CM2, ['H', 'b', 'B**2'])
 
     if Integrator == 0:
-        Nz = 200
-        Ny = 400
+        Nz = 300
+        Ny = 600
         start = time.time()
-        sol = simulate_raytracer(22, Par, [20, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
+        sol = simulate_radius(22, Par, [20, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
         end = time.time()
         print('Tijdsduur = ' + str(end-start))
         momenta, position = sol
 
+        # np.save('raytracer2', position)
+
         picture = rotate_ray(position, Nz, Ny)
-        print(position)
+        # print(position)
         print('saving location...')
         np.save('raytracer2', picture)
         print('location saved!')
-
-        print('Saving picture')
-        path = os.getcwd()
-        cv2.imwrite(os.path.join(path, 'picture2.png'), picture)
-        print('Picture saved')
+        #
+        # print('Saving picture')
+        # path = os.getcwd()
+        # cv2.imwrite(os.path.join(path, 'picture2.png'), picture)
+        # print('Picture saved')
 
     #print(picture)
     if Integrator == 1:

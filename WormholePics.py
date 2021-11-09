@@ -1,4 +1,4 @@
-#import WormholeRayTracer as w
+import WormholeRayTracer as wrmhole
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,8 +6,8 @@ import os
 
 # Inladen foto's
 print('Reading in pictures...')
-img_saturn    = cv2.imread('Saturn.jpg')
-img_gargantua = cv2.imread('wormhole.jpg')
+img_saturn    = cv2.imread('wormhole.jpg')
+img_gargantua = cv2.imread('Saturn.jpg')
 # print('here1')
 # print(img_gargantua.shape)
 # print(len(img_saturn))
@@ -123,7 +123,8 @@ print('Saturn image loaded.')
 gargantua   = photo_to_sphere(img_gargantua)
 print('Gargantua image loaded.')
 # import numpy as np
-raytracer = np.load('raytracer2.npy')
+
+raytracer = wrmhole.wormhole_with_symmetry(steps=3000, initialcond = [30, np.pi, np.pi/2], Nz=200, Ny=400)
 # print(raytracer.shape)
 print('Ray tracer solution loaded.')
 print('Starting image placing process...')
@@ -132,5 +133,5 @@ print(pic)
 print('Image placing completed.')
 print('Saving picture')
 path = os.getcwd()
-cv2.imwrite(os.path.join(path, 'Interstellar_met_grid2.png'), pic)
+cv2.imwrite(os.path.join(path, 'Interstellar_met_grid4.png'), pic)
 print('Picture saved')
