@@ -595,6 +595,7 @@ def gdsc(Motion, Par, name, path, select = None, reduce = False):
     #       select: Give a list of 2D indices to plot only specific geodesiscs
     #       reduce: if true sample geodescics uniformly
     M, rho, a = Par
+    q0 = Motion[0,1,:,0,0].reshape(3,1)
 
     if np.any(select == None):
         Motion = np.transpose(Motion, (1,2,0,3,4))
@@ -631,10 +632,13 @@ def gdsc(Motion, Par, name, path, select = None, reduce = False):
                 ij = i + Nz_s*j
                 cl_i =cl[ind[ij]]
                 ax.plot(X[:,i,j], Y[:,i,j], Z[:,i,j], color = cl_i, alpha=0.5)
+        ax.scatter(X[0,0,0] , Y[0,0,0], Z[0,0,0], label='camera', c = 'r')
         ax.set_title("Geodesics")
+        ax.legend()
     else:
         for k in range(len(select)):
             ax.plot(X[:,k], Y[:,k], Z[:,k], label= str(select[k]))
+        ax.scatter(X[0,0] , Y[0,0], Z[0,0], label='camera', c = 'r')
         ax.set_title("Geodesics corresponding to labeled pixel")
         ax.legend()
     # adds surface
@@ -715,7 +719,7 @@ if __name__ == '__main__':
     #print(picture)
     if Integrator == 1:
         if mode ==  0:
-             plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path)
+             plot_CM(CM1, ['$H$', '$b$', '$B^{2}$'], "Pictures/CM DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path)
         #plot_CM(CM2, ['H', 'b', 'B**2'])
 
         #start = time.time()
