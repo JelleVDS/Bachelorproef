@@ -32,8 +32,6 @@ for teller in range(0, horizontal):
 def photo_to_sphere(photo):
     """
     Give the pixels of the pictures a spherical coordinate
-        -herschalen
-        -reduceren naar Ny x Nz
     Input:  - photo: de pixels van de photo in sferische coordinaten
     Output: - dict: een dictionary met als sleutel (theta, phi) en als waarde
               de RGB-value van de bijbehorende pixel
@@ -74,7 +72,6 @@ def decide_universe(photo, saturn, gargantua):
             - gargantua: spherical picture of the other side
     Output: - picture:   Matrix with RGB values for cv2
     """
-    # print('here:3')
     picture = []
     for rij in range(len(photo)):
         row = []
@@ -117,6 +114,7 @@ def ray_to_rgb(position, saturn):
 
     return RGB
 
+<<<<<<< HEAD
 
 saturn      = photo_to_sphere(img_saturn)
 print('Saturn image loaded.')
@@ -167,3 +165,22 @@ print('Picture saved')
 #     path = os.getcwd()
 #     cv2.imwrite(os.path.join(path, 'param_70_43_8.6_'+str(a[i])+'.png'), pic_a)
 #     print('pictures saved:'+str(i))
+=======
+if __name__ == '__main__':
+    saturn      = photo_to_sphere(img_saturn)
+    print('Saturn image loaded.')
+    gargantua   = photo_to_sphere(img_gargantua)
+    print('Gargantua image loaded.')
+
+    raytracer = wrmhole.wormhole_with_symmetry(steps=3000, initialcond = [20, np.pi, np.pi/2], Nz=1024, Ny=2048)
+    # print(raytracer.shape)
+    print('Ray tracer solution loaded.')
+    print('Starting image placing process...')
+    pic = decide_universe(raytracer, saturn, gargantua)
+    print(pic)
+    print('Image placing completed.')
+    print('Saving picture')
+    path = os.getcwd()
+    cv2.imwrite(os.path.join(path, 'Pictures/Interstellar_met_grid4.png'), pic)
+    print('Picture saved')
+>>>>>>> 4f34cfe7a10d26db206a31354d4453fcdd16c1a5

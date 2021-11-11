@@ -21,8 +21,8 @@ def dneg_dr_dl(y, M=0.43/1.42953, a=0):
     # output: scalar
     # define derivative of r to l
 
-    x = 2*(a-np.abs(y))/(np.pi*M)
-    dr_dl = -2/np.pi*np.arctan(x)*np.sign(y)
+    x = 2*(np.abs(y) - a)/(np.pi*M)
+    dr_dl = 2/np.pi*np.arctan(x)*np.sign(y)
 
     return dr_dl
 

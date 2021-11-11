@@ -25,7 +25,7 @@ def Sympl_DNeg(p, q, Cst, h, Par):
     l_abs = np.abs(l)
     x = 2*(l_abs - a)/(np.pi*M)
     r = rho + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
-    dr = -2/np.pi*np.arctan(-x)*np.sign(l)
+    dr = 2/np.pi*np.arctan(x)*np.sign(l)
     d2r = (4*M)/(4*a**2 + M**2*np.pi**2 + 4*l**2 - 8*a*l_abs)
     
     rec_r = 1/r
