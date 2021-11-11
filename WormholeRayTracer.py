@@ -234,12 +234,9 @@ def simulate_radius(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     S_c = screen_cart(end, end)
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
-<<<<<<< HEAD
-    M, rho, a = Par
+
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
-=======
-    p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
->>>>>>> 4f34cfe7a10d26db206a31354d4453fcdd16c1a5
+
     p1, p2, p3 = p
     endpos = []
     endmom = []
@@ -287,12 +284,11 @@ def simulate_raytracer(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45')
             - endpos: matrix with the positions of the solution
     """
     print('Initializing screen and calculating initial condition...')
-<<<<<<< HEAD
+
     # end = int(np.ceil(np.sqrt(Ny**2+Nz**2)))
     M, rho, a = Par
-=======
+
     # Reading out values and determining parameters
->>>>>>> 4f34cfe7a10d26db206a31354d4453fcdd16c1a5
     S_c = screen_cart(Nz, Ny)
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
@@ -598,33 +594,30 @@ def ray_spread(Nz, Ny):
     return cl, ind
 
 
-def gdsc(Motion, Par, name, path, select = None, reduce = False):
+def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = False):
     # input: Motion: 5D matrix, the elements being [p, q] with p, q as defined earlier
     #       Par: parameters wormhole
     #       Name: picture/filename
     #       Path: directory
     #       select: Give a list of 2D indices to plot only specific geodesiscs
+    #       geo_label: if you're just plotting a list of geodesics (thus its elements in order time, [p,q], coordinate),
+    #                   then give here a list of strings that which will be the label of your geodesics, corresponding to the order of your geodesics. 
     #       reduce: if true sample geodescics uniformly
     M, rho, a = Par
-<<<<<<< HEAD
-=======
-    q0 = Motion[0,1,:,0,0].reshape(3,1)
->>>>>>> 4f34cfe7a10d26db206a31354d4453fcdd16c1a5
 
     if np.any(select == None):
-        Motion = np.transpose(Motion, (1,2,0,3,4))
-
-        Ny, Nz =  Motion[0][0][0].shape
-        if reduce == True:
+        if np.any(reduce == False):
+            Sample = np.transpose(Motion, (1,2,3,0))
+        else:
+            Motion = np.transpose(Motion, (1,2,0,3,4))
+            Ny, Nz =  Motion[0][0][0].shape
             Ny_s = int(np.sqrt(Nz))
             Nz_s = int(np.sqrt(Ny))
 
             # Samples a uniform portion of the rays for visualisation
             Sample = Motion[:, :, :, 1::Nz_s, 1::Ny_s]
-            cl, ind = ray_spread(Nz_s, Ny_s)
-        else:
-            Sample = Motion
-            cl, ind = ray_spread(Nz, Ny)
+            cl, ind = ray_spread(Nz_s, Ny_s)           
+            
     else:
         Motion = np.transpose(Motion, (3,4,0,1,2))
         Sample = np.transpose(
@@ -640,7 +633,17 @@ def gdsc(Motion, Par, name, path, select = None, reduce = False):
     X, Y = r*np.cos(phi), r*np.sin(phi)
     Z = Dia.imb_f_int(l, Par)
 
-    if np.any(select == None):
+    if np.any(reduce == False):
+        for k in range(len(Sample[0,0,0])):
+            if np.any(select == None):
+                geo_label = geo_label[k]
+            else:
+                geo_label = str(select[k])
+            ax.plot(X[:,k], Y[:,k], Z[:,k], label= geo_label)
+        ax.scatter(X[0,0] , Y[0,0], Z[0,0], label='camera', c = 'r')
+        ax.set_title("Geodesics corresponding to labeled pixel")
+        ax.legend()
+    else:
         for i in range(Nz_s):
             for j in range(Ny_s):
                 ij = i + Nz_s*j
@@ -649,12 +652,7 @@ def gdsc(Motion, Par, name, path, select = None, reduce = False):
         ax.scatter(X[0,0,0] , Y[0,0,0], Z[0,0,0], label='camera', c = 'r')
         ax.set_title("Geodesics")
         ax.legend()
-    else:
-        for k in range(len(select)):
-            ax.plot(X[:,k], Y[:,k], Z[:,k], label= str(select[k]))
-        ax.scatter(X[0,0] , Y[0,0], Z[0,0], label='camera', c = 'r')
-        ax.set_title("Geodesics corresponding to labeled pixel")
-        ax.legend()
+        
     # adds surface
 
     S_l = np.linspace(np.max(l), np.min(l), len(l)+1)
@@ -669,11 +667,11 @@ def gdsc(Motion, Par, name, path, select = None, reduce = False):
     ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
     plt.savefig(os.path.join(path, name), dpi=150)
 
-<<<<<<< HEAD
-def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
-=======
+
+#def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
+
 def wormhole_with_symmetry(time=22, initialcond = [20, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 1, 0]):
->>>>>>> 4f34cfe7a10d26db206a31354d4453fcdd16c1a5
+
     """
     One function to calculate the ray and rotate it to a full picture with the
     given parameters (used to easily run the symmetry code in other files)
@@ -696,72 +694,44 @@ def wormhole_with_symmetry(time=22, initialcond = [20, np.pi, np.pi/2], Nz=200, 
     print('Ray rotated!')
     return picture
 
-# if __name__ == '__main__':
-#     path = os.getcwd()
-#     Par = [0.43/1.42953, 1, 0] # M, rho, a parameters wormhole
-#     Integrator = 1
+if __name__ == '__main__':
+    path = os.getcwd()
+    Par = [0.43/1.42953, 1, 0] # M, rho, a parameters wormhole
+    Integrator = 1 # 1 = scipy integrator, 0 = symplectic intgrator
     #initial position in spherical coord
-    #for radius in range(1, 15):
-# <<<<<<< HEAD
 
-    # if Integrator == 1:
-    #     initial_q = np.array([[17, np.pi, np.pi/2]])
-    #     Grid_dimension = '2D'
-    #     mode = 0
-    #     Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, Par, 0.02, 1500, initial_q, 20**2, 20**2, Grid_dimension, mode)
-        #np.save('raytracer1', np.transpose(Motion1[-1][1], (1, 2, 0)))
-        # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, [7, np.pi, np.pi/2], 10, 10)
-
-    # if Integrator == 0:
-    #     Nz = 200
-    #     Ny = 400
-    #     start = time.time()
-    #     sol = simulate_radius(22, Par, [20, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
-    #     end = time.time()
-    #     print('Tijdsduur = ' + str(end-start))
-    #     momenta, position = sol
-    #
-    #     # np.save('raytracer2', position)
-    #
-    #     picture = rotate_ray(position, Nz, Ny)
-    #     # print(position)
-    #     print('saving location...')
-    #     np.save('raytracer2', picture)
-    #     print('location saved!')
-        #
-        # print('Saving picture')
-        # path = os.getcwd()
-        # cv2.imwrite(os.path.join(path, 'picture2.png'), picture)
-        # print('Picture saved')
-
-<<<<<<< HEAD
-    # #print(picture)
-    # if Integrator == 1:
-    #     if mode ==  0:
-    #          plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path)
-    #     #plot_CM(CM2, ['H', 'b', 'B**2'])
-    #
-    #     #start = time.time()
-    #     #sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
-    #     #end = time.time()
-    #     #print('Tijdsduur = ' + str(end-start))
-    #     #print(sol)
-    #     #np.save('raytracer2', sol)`
-    #
-    #     if mode ==  0:
-    #          #Geo_Sel = None
-    #          Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
-    #          if Geo_Sel == None:
-    #              Geo_txt = ""
-    #          else:
-    #              Geo_txt = str(Geo_Sel)
-    #          gdsc(Motion1, Par, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path, Geo_Sel)
-    #     # # gdsc(Motion2)
-    #
-    #     cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(Par)+" "+str(initial_q)+".png"), 255*Photo1)
-=======
-    #print(picture)
     if Integrator == 1:
+         initial_q = np.array([[17, np.pi, np.pi/2]])
+         Grid_dimension = '2D'
+         mode = 0 
+         Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, Par, 0.02, 1500, initial_q, 20**2, 20**2, Grid_dimension, mode)
+
+
+    if Integrator == 0:
+        Nz = 200
+        Ny = 400
+        start = time.time()
+        sol = simulate_radius(22, Par, [20, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
+        end = time.time()
+        print('Tijdsduur = ' + str(end-start))
+        momenta, position = sol
+    
+         # np.save('raytracer2', position)
+    
+        picture = rotate_ray(position, Nz, Ny)
+        # print(position)
+        print('saving location...')
+        np.save('raytracer2', picture)
+        print('location saved!')
+        
+        print('Saving picture')
+        path = os.getcwd()
+        cv2.imwrite(os.path.join(path, 'picture2.png'), picture)
+        print('Picture saved')
+
+
+    #print(picture)
+    if Integrator == 1 or Integrator == 2: # conditions can be altered once the scipy integrator is able to return geodescics 
         if mode ==  0:
              plot_CM(CM1, ['$H$', '$b$', '$B^{2}$'], "Pictures/CM DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path)
         #plot_CM(CM2, ['H', 'b', 'B**2'])
@@ -774,16 +744,15 @@ def wormhole_with_symmetry(time=22, initialcond = [20, np.pi, np.pi/2], Nz=200, 
         #np.save('raytracer2', sol)`
 
         if mode ==  0:
-             #Geo_Sel = None
-             Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
-             if Geo_Sel == None:
-                 Geo_txt = ""
-             else:
+            Geo_label = None #list of strings for labeling geodesics, turn Geo_selto None
+            #Geo_Sel = None
+            Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
+            if Geo_Sel == None:
+                Geo_txt = ""
+            else:
                  Geo_txt = str(Geo_Sel)
-             gdsc(Motion1, Par, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path, Geo_Sel)
-        # # gdsc(Motion2)
+            gdsc(Motion1, Par, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path, Geo_label, Geo_Sel)
 
         cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(Par)+" "+str(initial_q)+".png"), 255*Photo1)
->>>>>>> 4f34cfe7a10d26db206a31354d4453fcdd16c1a5
 
-        #cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)
+
