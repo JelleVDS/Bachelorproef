@@ -13,7 +13,7 @@ import scipy.integrate as integr
 
 
 #Dit is op de master branch:
-def dneg_r(y, M=0.43/1.42953 , rho=1, a=0):
+def dneg_r(y, M , rho, a):
     # input: scalars
     # output: scalar
     # define r(l) for a DNeg wormhole without gravity
@@ -23,7 +23,7 @@ def dneg_r(y, M=0.43/1.42953 , rho=1, a=0):
 
     return r
 
-def dneg_dr_dl(y, M=0.43/1.42953, a=0):
+def dneg_dr_dl(y, M, a):
     # input:scalars
     # output: scalar
     # define derivative of r to l
@@ -34,7 +34,7 @@ def dneg_dr_dl(y, M=0.43/1.42953, a=0):
     return dr_dl
 
 
-def dneg_d2r_dl2(y, M=0.43/1.42953, a=0):
+def dneg_d2r_dl2(y, M, a):
     # input: scalars
     # output: scalars
     # define second derivative of r to l
@@ -78,7 +78,7 @@ def cart_Sph(v):
     return v_sph
 
 
-def inn_momenta(S_c, S_sph, Cst_f, inn_p_f):
+def inn_momenta(S_c, S_sph, Cst_f, inn_p_f, Par):
     # input: S_c: 3D matrix as an output of "screen_cart",
     #        S_sph: 3D matrix with Sph. coord. on first row and then a 2D matrix
     #               within that containing value for that coordinate
@@ -89,9 +89,10 @@ def inn_momenta(S_c, S_sph, Cst_f, inn_p_f):
     #         Cst: list of cst of motion containing the value for each ray in 2D matrix
 
     r, phi, theta = S_sph
+    M, rho, a = Par
     S_n = S_c/r.reshape(len(S_c) ,len(S_c[0]), 1) # normalize direction light rays
     S_n = np.transpose(S_n, (2,0,1)) # start array in terms of coordinates
-    p = inn_p_f(S_n, S_sph) # calculate initial momenta, coords still on first row matrix
+    p = inn_p_f(S_n, S_sph, Par) # calculate initial momenta, coords still on first row matrix
     Cst = Cst_f(p, S_sph) # calculate constant of motions
 
     return [p, Cst]
@@ -113,7 +114,7 @@ def Cst_DNeg(p, q):
     return Cst
 
 
-def inn_mom_DNeg(S_n, S_sph):
+def inn_mom_DNeg(S_n, S_sph, Par):
     # input: S_c: 3D matrix as earlier defined the in output of "screen_cart", from which
     #             we can calculate S_n
     #        S_sph: 3D matrix with Sph. coord. on first row and then a 2D matrix
@@ -122,9 +123,10 @@ def inn_mom_DNeg(S_n, S_sph):
     #         a 2D matrix within that with the value for each ray
 
     l, phi, theta = S_sph
+    M, rho, a = Par
 
     # defining r(l)
-    r = dneg_r(l)
+    r = dneg_r(l, M, rho, a)
 
     # defining the momenta
     p_l = -S_n[0]
@@ -148,7 +150,7 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     S_c = screen_cart(Nz, Ny, 1, 1)
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
-    p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
+    p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
     q1 = np.transpose(np.tile(q0, (Nz, Ny,1)), (2,0,1)) + h*0.1
     q = q1
     Motion = [[p, q]]
@@ -201,7 +203,7 @@ def diff_equations(t, variables):
     dtheta_dt   = p_th * rec_r_2
 
     dphi_dt     = b * rec_sin2 * rec_r_2
-    dpl_dt      = B * (dneg_dr_dl(l)) * rec_r_3
+    dpl_dt      = B * (dneg_dr_dl(l, M, a)) * rec_r_3
     dpth_dt     = b ** 2 * cos1 * rec_sin3 * rec_r_2
 
     diffeq = [-dl_dt, -dphi_dt, -dtheta_dt, -dpl_dt, np.zeros(dl_dt.shape), -dpth_dt, 0, 0, 0]
@@ -227,8 +229,8 @@ def simulate_radius(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     S_c = screen_cart(end, end)
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
-    p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
     M, rho, a = Par
+    p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
     p1, p2, p3 = p
     q1, q2, q3 = q0
     endpos = []
@@ -283,13 +285,13 @@ def simulate_raytracer(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45')
     """
     print('Initializing screen and calculating initial condition...')
     # end = int(np.ceil(np.sqrt(Ny**2+Nz**2)))
+    M, rho, a = Par
     S_c = screen_cart(Nz, Ny)
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
-    p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg)
+    p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
     p1, p2, p3 = p
     q1, q2, q3 = q0
-    M, rho, a = Par
     endpos = []
     endmom = []
     print(len(p1))
@@ -403,11 +405,11 @@ def Grid_constr_2D(q, N_a, R, w):
     #output: 2D boolean array
     Nz, Ny =  q[0].shape
     r, phi, theta = q
-    
+
     # subdivides theta and phi
     Par_phi = np.linspace(0, 2*np.pi, N_a-1)
     Par_th = np.linspace(0, np.pi, N_a-1)
-    
+
     # Defines point on polar grid
     on_phi = np.any(
         np.abs(phi.reshape(1,Nz,Ny) -
@@ -433,7 +435,7 @@ def Grid_constr_3D(q, N_a, R, w, Slice = None):
         Slice = np.zeros((Nz, Ny), dtype=bool)
     Slice_inv = ~Slice
     r, phi, theta = q
-    
+
     # subdivides theta and phi
     Par_phi = np.linspace(0, 2*np.pi, N_a-1)
     Par_th = np.linspace(0, np.pi, N_a-1)
@@ -580,8 +582,8 @@ def ray_spread(Nz, Ny):
     cl = plt.cm.viridis(np.arange(N)/N)
 
     return cl, ind
-    
-    
+
+
 def gdsc(Motion, Par, name, path, select = None, reduce = False):
     # input: Motion: 5D matrix, the elements being [p, q] with p, q as defined earlier
     #       Par: parameters wormhole
@@ -590,7 +592,7 @@ def gdsc(Motion, Par, name, path, select = None, reduce = False):
     #       select: Give a list of 2D indices to plot only specific geodesiscs
     #       reduce: if true sample geodescics uniformly
     M, rho, a = Par
-    
+
     if np.any(select == None):
         Motion = np.transpose(Motion, (1,2,0,3,4))
 
@@ -598,7 +600,7 @@ def gdsc(Motion, Par, name, path, select = None, reduce = False):
         if reduce == True:
             Ny_s = int(np.sqrt(Nz))
             Nz_s = int(np.sqrt(Ny))
-        
+
             # Samples a uniform portion of the rays for visualisation
             Sample = Motion[:, :, :, 1::Nz_s, 1::Ny_s]
             cl, ind = ray_spread(Nz_s, Ny_s)
@@ -646,7 +648,7 @@ def gdsc(Motion, Par, name, path, select = None, reduce = False):
     ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
     plt.savefig(os.path.join(path, name), dpi=150)
 
-def wormhole_with_symmetry(steps=22, initialcond = [20, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 1, 0]):
+def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
     """
     One function to calculate the ray and rotate it to a full picture with the
     given parameters
@@ -662,67 +664,67 @@ def wormhole_with_symmetry(steps=22, initialcond = [20, np.pi, np.pi/2], Nz=200,
     print('Ray rotated!')
     return picture
 
-if __name__ == '__main__':
-    path = os.getcwd()
-    Par = [0.43/1.42953, 1, 0] # M, rho, a parameters wormhole
-    Integrator = 1
+# if __name__ == '__main__':
+#     path = os.getcwd()
+#     Par = [0.43/1.42953, 1, 0] # M, rho, a parameters wormhole
+#     Integrator = 1
     #initial position in spherical coord
     #for radius in range(1, 15):
 # <<<<<<< HEAD
 
-    if Integrator == 1:
-        initial_q = np.array([[17, np.pi, np.pi/2]])
-        Grid_dimension = '2D'
-        mode = 0
-        Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, Par, 0.02, 1500, initial_q, 20**2, 20**2, Grid_dimension, mode)
+    # if Integrator == 1:
+    #     initial_q = np.array([[17, np.pi, np.pi/2]])
+    #     Grid_dimension = '2D'
+    #     mode = 0
+    #     Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, Par, 0.02, 1500, initial_q, 20**2, 20**2, Grid_dimension, mode)
         #np.save('raytracer1', np.transpose(Motion1[-1][1], (1, 2, 0)))
         # Motion2, Photo2, CM2 = Simulate_DNeg(rk.runge_kutta, 0.01, 1000, [7, np.pi, np.pi/2], 10, 10)
 
-    if Integrator == 0:
-        Nz = 300
-        Ny = 600
-        start = time.time()
-        sol = simulate_radius(22, Par, [20, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
-        end = time.time()
-        print('Tijdsduur = ' + str(end-start))
-        momenta, position = sol
-
-        # np.save('raytracer2', position)
-
-        picture = rotate_ray(position, Nz, Ny)
-        # print(position)
-        print('saving location...')
-        np.save('raytracer2', picture)
-        print('location saved!')
+    # if Integrator == 0:
+    #     Nz = 200
+    #     Ny = 400
+    #     start = time.time()
+    #     sol = simulate_radius(22, Par, [20, np.pi, np.pi/2], Nz, Ny, methode = 'RK45')
+    #     end = time.time()
+    #     print('Tijdsduur = ' + str(end-start))
+    #     momenta, position = sol
+    #
+    #     # np.save('raytracer2', position)
+    #
+    #     picture = rotate_ray(position, Nz, Ny)
+    #     # print(position)
+    #     print('saving location...')
+    #     np.save('raytracer2', picture)
+    #     print('location saved!')
         #
         # print('Saving picture')
         # path = os.getcwd()
         # cv2.imwrite(os.path.join(path, 'picture2.png'), picture)
         # print('Picture saved')
 
-    #print(picture)
-    if Integrator == 1:
-        if mode ==  0:
-             plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path)
-        #plot_CM(CM2, ['H', 'b', 'B**2'])
-
-        #start = time.time()
-        #sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
-        #end = time.time()
-        #print('Tijdsduur = ' + str(end-start))
-        #print(sol)
-        #np.save('raytracer2', sol)`
-
-        if mode ==  0:
-             #Geo_Sel = None
-             Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
-             if Geo_Sel == None:
-                 Geo_txt = ""
-             else:
-                 Geo_txt = str(Geo_Sel)
-             gdsc(Motion1, Par, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path, Geo_Sel)
-        # # gdsc(Motion2)
-
-        cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(Par)+" "+str(initial_q)+".png"), 255*Photo1)
+    # #print(picture)
+    # if Integrator == 1:
+    #     if mode ==  0:
+    #          plot_CM(CM1, ['H', 'b', 'B**2'], "Pictures/CM DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path)
+    #     #plot_CM(CM2, ['H', 'b', 'B**2'])
+    #
+    #     #start = time.time()
+    #     #sol = simulate_raytracer(0.01, 100, [5, 3, 3], Nz = 20**2, Ny = 20**2, methode = 'RK45')
+    #     #end = time.time()
+    #     #print('Tijdsduur = ' + str(end-start))
+    #     #print(sol)
+    #     #np.save('raytracer2', sol)`
+    #
+    #     if mode ==  0:
+    #          #Geo_Sel = None
+    #          Geo_Sel = [[348, 70], [296, 360], [171, 175], [85, 37], [10, 10]]
+    #          if Geo_Sel == None:
+    #              Geo_txt = ""
+    #          else:
+    #              Geo_txt = str(Geo_Sel)
+    #          gdsc(Motion1, Par, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path, Geo_Sel)
+    #     # # gdsc(Motion2)
+    #
+    #     cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(Par)+" "+str(initial_q)+".png"), 255*Photo1)
 
         #cv2.imwrite(path + '/DNeg Kutta.png', 255*Photo2)

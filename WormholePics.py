@@ -6,8 +6,8 @@ import os
 
 # Inladen foto's
 print('Reading in pictures...')
-img_saturn    = cv2.imread('wormhole.jpg')
-img_gargantua = cv2.imread('Saturn.jpg')
+img_saturn    = cv2.imread('four400.png')
+img_gargantua = cv2.imread('negfour400.png')
 # print('here1')
 # print(img_gargantua.shape)
 # print(len(img_saturn))
@@ -124,14 +124,46 @@ gargantua   = photo_to_sphere(img_gargantua)
 print('Gargantua image loaded.')
 # import numpy as np
 
-raytracer = wrmhole.wormhole_with_symmetry(steps=3000, initialcond = [30, np.pi, np.pi/2], Nz=200, Ny=400)
+raytracer = wrmhole.wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43])
 # print(raytracer.shape)
 print('Ray tracer solution loaded.')
 print('Starting image placing process...')
 pic = decide_universe(raytracer, saturn, gargantua)
-print(pic)
+# print(pic)
 print('Image placing completed.')
 print('Saving picture')
 path = os.getcwd()
-cv2.imwrite(os.path.join(path, 'Interstellar_met_grid4.png'), pic)
+cv2.imwrite(os.path.join(path, 'param_70_0.43_8.6_43.png'), pic)
 print('Picture saved')
+
+# l = [53.79, 58.05, 96.75]
+# W = [0.43, 0.12, 0.55]
+# a = [0.043, 4.3, 43]
+
+# for i in range(0, len(l)):
+#     print('started with l:'+str(i))
+#     raytracer_l = wrmhole.wormhole_with_symmetry(steps=3000, initialcond = [l[i], np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 4.3])
+#
+#     pic_l = decide_universe(raytracer_l, saturn, gargantua)
+#     path = os.getcwd()
+#     cv2.imwrite(os.path.join(path, 'param_'+str(l[i])+'_0.43_8.6_4.3.png'), pic_l)
+#     print('pictures saved:'+str(i))
+
+# for i in range(0, len(W)):
+#     print('started with W:'+str(i))
+#     raytracer_W = wrmhole.wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[W[i]/1.42953, 8.6, 4.3])
+#     # raytracer_a = wrmhole.wormhole_with_symmetry(steps=3000, initialcond = [300, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, a[i]])
+#
+#     pic_W = decide_universe(raytracer_W, saturn, gargantua)
+#     path = os.getcwd()
+#     cv2.imwrite(os.path.join(path, 'param_70_'+str(W[i])+'_8.6_4.3.png'), pic_W)
+#     print('pictures saved:'+str(i))
+#
+# for i in range(0, len(a)):
+#     print('started with a:'+str(i))
+#     raytracer_a = wrmhole.wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, a[i]])
+#
+#     pic_a = decide_universe(raytracer_a, saturn, gargantua)
+#     path = os.getcwd()
+#     cv2.imwrite(os.path.join(path, 'param_70_43_8.6_'+str(a[i])+'.png'), pic_a)
+#     print('pictures saved:'+str(i))
