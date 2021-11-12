@@ -337,6 +337,73 @@ def simulate_raytracer(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45')
         print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
     return np.array(endmom), np.array(endpos)
 
+def simulate_raytracer_fullpath(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
+    """
+    Solves the differential equations using a build in solver (solve_ivp) with
+    specified method.
+    Input:  - t_end: endtime of the Integration
+            - Par: wormhole parameters
+            - q0: position of the camera
+            - Nz: number of vertical pixels
+            - Ny: number of horizontal pixels
+            - methode: method used for solving the ivp (standerd runge-kutta of fourth order)
+
+    Output: - Motion: Usual 5D matrix
+    """
+    print('Initializing screen and calculating initial condition...')
+
+    # end = int(np.ceil(np.sqrt(Ny**2+Nz**2)))
+    M, rho, a = Par
+
+    # Reading out values and determining parameters
+    S_c = screen_cart(Nz, Ny)
+    S_cT = np.transpose(S_c, (2,0,1))
+    S_sph = cart_Sph(S_cT)
+    p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
+    p1, p2, p3 = p
+    q1, q2, q3 = q0
+    endpos = []
+    endmom = []
+
+    # Looping over all momenta
+    for teller1 in range(0, len(p1)):
+        row_pos = []
+        row_mom = []
+        start_it = time.time()
+        for teller2 in range(0, len(p1[0])):
+
+            start_it = time.time()
+            initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
+            # Integrates to the solution
+            sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
+            #Reads out the data from the solution
+            l_end       = sol.y[0]
+            phi_end     = sol.y[1]
+            # Correcting for phi and theta values out of bounds
+            while phi_end>2*np.pi:
+                phi_end = phi_end - 2*np.pi
+            while phi_end<0:
+                phi_end = phi_end + 2*np.pi
+            theta_end   = sol.y[2]
+            while theta_end > np.pi:
+                theta_end = theta_end - np.pi
+            while theta_end < 0:
+                theta_end = theta_end + np.pi
+            pl_end      = sol.y[3]
+            pphi_end    = sol.y[4]
+            ptheta_end  = sol.y[5]
+            # adds local solution to row
+            row_pos.append(np.array([l_end, phi_end, theta_end]))
+            row_mom.append(np.array([pl_end, pphi_end, ptheta_end]))
+
+        # adds row to matrix
+        endpos.append(np.array(row_pos))
+        endmom.append(np.array(row_mom))
+        end_it = time.time()
+        duration = end_it - start_it
+        print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
+    return np.tranpose(np.array([endmom, endpos]), (4,0,3,1,2)) #output same shape as sympl. intgr.
+
 
 def rotate_ray(ray, Nz, Ny):
     """
