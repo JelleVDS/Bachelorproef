@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
 
-def dneg_r(y, M=0.43/1.42953 , rho=1, a=0):
+def dneg_r(y, M=0.12/1.42953 , rho=8.6, a=4.3):
     # input: scalars
     # output: scalar
     # define r(l) for a DNeg wormhole without gravity
@@ -75,4 +75,4 @@ def inb_diagr(I, N , Par, ax = None):
 
 
 if __name__ == '__main__':
-    inb_diagr([-10, 10], 1000)
+    inb_diagr([-10, 10], 1000, Par = [0.12/1.42953, 8.6, 4.3])

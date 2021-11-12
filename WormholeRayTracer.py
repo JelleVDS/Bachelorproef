@@ -57,7 +57,7 @@ def screen_cart(Nz, Ny, L1 = 1, L2=2):
     for j in range(Nz):
         for i in range(Ny):
             # Placed at x = 1, (y,z) in My X Mz
-            arr.append([1, My[i],Mz[j]]) #(x, y, z)
+            arr.append([0.5, My[i],Mz[j]]) #(x, y, z)
 
     return np.array(arr).reshape(Nz, Ny, 3) #Flat array into matrix
 
@@ -601,7 +601,7 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
     #       Path: directory
     #       select: Give a list of 2D indices to plot only specific geodesiscs
     #       geo_label: if you're just plotting a list of geodesics (thus its elements in order time, [p,q], coordinate),
-    #                   then give here a list of strings that which will be the label of your geodesics, corresponding to the order of your geodesics. 
+    #                   then give here a list of strings that which will be the label of your geodesics, corresponding to the order of your geodesics.
     #       reduce: if true sample geodescics uniformly
     M, rho, a = Par
 
@@ -616,8 +616,8 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
 
             # Samples a uniform portion of the rays for visualisation
             Sample = Motion[:, :, :, 1::Nz_s, 1::Ny_s]
-            cl, ind = ray_spread(Nz_s, Ny_s)           
-            
+            cl, ind = ray_spread(Nz_s, Ny_s)
+
     else:
         Motion = np.transpose(Motion, (3,4,0,1,2))
         Sample = np.transpose(
@@ -652,7 +652,7 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
         ax.scatter(X[0,0,0] , Y[0,0,0], Z[0,0,0], label='camera', c = 'r')
         ax.set_title("Geodesics")
         ax.legend()
-        
+
     # adds surface
 
     S_l = np.linspace(np.max(l), np.min(l), len(l)+1)
@@ -670,7 +670,7 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
 
 #def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
 
-def wormhole_with_symmetry(time=22, initialcond = [20, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 1, 0]):
+def wormhole_with_symmetry(time=22, initialcond = [20, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0]):
 
     """
     One function to calculate the ray and rotate it to a full picture with the
@@ -695,6 +695,7 @@ def wormhole_with_symmetry(time=22, initialcond = [20, np.pi, np.pi/2], Nz=200, 
     return picture
 
 if __name__ == '__main__':
+
     path = os.getcwd()
     Par = [0.43/1.42953, 1, 0] # M, rho, a parameters wormhole
     Integrator = 1 # 1 = scipy integrator, 0 = symplectic intgrator
@@ -703,7 +704,7 @@ if __name__ == '__main__':
     if Integrator == 1:
          initial_q = np.array([[17, np.pi, np.pi/2]])
          Grid_dimension = '2D'
-         mode = 0 
+         mode = 0
          Motion1, Photo1, CM1 = Simulate_DNeg(Smpl.Sympl_DNeg, Par, 0.02, 1500, initial_q, 20**2, 20**2, Grid_dimension, mode)
 
 
@@ -715,15 +716,15 @@ if __name__ == '__main__':
         end = time.time()
         print('Tijdsduur = ' + str(end-start))
         momenta, position = sol
-    
+
          # np.save('raytracer2', position)
-    
+
         picture = rotate_ray(position, Nz, Ny)
         # print(position)
         print('saving location...')
         np.save('raytracer2', picture)
         print('location saved!')
-        
+
         print('Saving picture')
         path = os.getcwd()
         cv2.imwrite(os.path.join(path, 'picture2.png'), picture)
@@ -731,7 +732,7 @@ if __name__ == '__main__':
 
 
     #print(picture)
-    if Integrator == 1 or Integrator == 2: # conditions can be altered once the scipy integrator is able to return geodescics 
+    if Integrator == 1 or Integrator == 2: # conditions can be altered once the scipy integrator is able to return geodescics
         if mode ==  0:
              plot_CM(CM1, ['$H$', '$b$', '$B^{2}$'], "Pictures/CM DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path)
         #plot_CM(CM2, ['H', 'b', 'B**2'])
@@ -754,5 +755,3 @@ if __name__ == '__main__':
             gdsc(Motion1, Par, "Pictures/geodesics "+Geo_txt+" DNeg Sympl"+str(Par)+" "+str(initial_q)+".png", path, Geo_label, Geo_Sel)
 
         cv2.imwrite(os.path.join(path, "Pictures/Image "+Grid_dimension+"Gr DNeg Sympl"+str(Par)+" "+str(initial_q)+".png"), 255*Photo1)
-
-
