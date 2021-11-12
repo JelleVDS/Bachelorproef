@@ -737,7 +737,7 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
 
 #def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
 
-def wormhole_with_symmetry(tijd=22, initialcond = [20, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0]):
+def wormhole_with_symmetry(time=22, initialcond = [20, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0]):
 
     """
     One function to calculate the ray and rotate it to a full picture with the
@@ -751,7 +751,7 @@ def wormhole_with_symmetry(tijd=22, initialcond = [20, np.pi, np.pi/2], Nz=400, 
     """
 
     start = time.time()
-    sol = simulate_radius(tijd, Par, initialcond, Nz, Ny, methode = 'RK45')
+    sol = simulate_radius(time, Par, initialcond, Nz, Ny, methode = 'RK45')
     end = time.time()
     print('Tijdsduur = ' + str(end-start))
     momenta, position = sol
