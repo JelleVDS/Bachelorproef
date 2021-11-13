@@ -1,15 +1,6 @@
 import numpy as np
-#import cv2
-#import matplotlib.pyplot as plt
-#from mpl_toolkits.mplot3d import Axes3D
-#import RungeKutta as rk
-#import InbeddingDiagramDNeg as Dia
-import WormholePics as WPic
-#import Symplectic_DNeg as Smpl
 import time
-#import os
 import scipy.integrate as integr
-#import scipy as sc
 
 
 
@@ -137,7 +128,7 @@ def inn_mom_DNeg(S_n, S_sph, Par):
     return p
 
 
-def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mode = 0):
+def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mode = 0, Grid_constr_3D = None):
     #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
     #       h: stepsize
     #       N amount of steps
@@ -145,7 +136,7 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     #       q0: initial position
     #       mode: disable data collection
     #output: motion: 5D matrix the elements being [p, q] p, q being 3D matrices
-    #        pict: 3D matrix (2D grid containg value in colorspace)
+    #        output: 2D boolean array
 
     S_c = screen_cart(Nz, Ny, 1, 1)
     S_cT = np.transpose(S_c, (2,0,1))
@@ -167,7 +158,7 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
             CM.append(CM_i)
         if Gr_D == '3D':
             # change parameters grid here
-            Grid = WPic.Grid_constr_3D(q, 11, 1, 0.01, Grid)
+            Grid = Grid_constr_3D(q, 11, 1, 0.01, Grid)
 
     if mode == 0:
         CM.append(DNeg_CM(p, q, Par))
@@ -175,14 +166,7 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     end = time.time()
 
     print(end - start)
-
-    #pict = Make_Pict_RB(q)
-    if Gr_D == '2D':
-        Grid = WPic.Grid_constr_2D(q, 11, 1, 0.05)
-    pict =  WPic.Make_Pict_RGBP(q, Grid)
-    #print(pict)
-    # pict = 0
-    return np.array(Motion), pict, np.array(CM)
+    return np.array(Motion), Grid, np.array(CM)
 
 
 def diff_equations(t, variables):
