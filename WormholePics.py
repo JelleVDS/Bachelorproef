@@ -9,9 +9,7 @@ import os
 print('Reading in pictures...')
 img_saturn    = cv2.imread('four400.png')
 img_gargantua = cv2.imread('negfour400.png')
-# print('here1')
-# print(img_gargantua.shape)
-# print(len(img_saturn))
+
 
 #Maak lijsten om dichtste te zoeken
 vertical   = len(img_saturn)     #1024
@@ -30,6 +28,7 @@ for teller in range(0, horizontal):
     #     phi = phi - 2*np.pi
     phi_list.append(phi)
 # print('here2')
+
 def photo_to_sphere(photo):
     """
     Give the pixels of the pictures a spherical coordinate
@@ -343,5 +342,3 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
     S_X, S_Y = S_L*np.cos(S_PHI), S_L*np.sin(S_PHI)
     ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
     plt.savefig(os.path.join(path, name), dpi=150)
-    
-    
