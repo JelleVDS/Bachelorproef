@@ -9,3 +9,5 @@ Saturn.jpg
 *.npz
 HorizontalLine.py
 fourcolor.png
+
+/__pycache__
