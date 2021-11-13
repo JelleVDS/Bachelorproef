@@ -111,11 +111,6 @@ def ray_to_rgb(position, saturn):
     return RGB
 
 
-<<<<<<< HEAD
     S_X, S_Y = S_L*np.cos(S_PHI), S_L*np.sin(S_PHI)
     ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
     plt.savefig(os.path.join(path, name), dpi=150)
-=======
-    
-    
->>>>>>> e80c74e05a00b11a6aa4b013ab34936ac194efa8

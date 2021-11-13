@@ -9,9 +9,4 @@ Saturn.jpg
 *.npz
 HorizontalLine.py
 fourcolor.png
-<<<<<<< HEAD
-
-/__pycache__
-=======
 ConsoleMeander.ipynb.html
->>>>>>> e80c74e05a00b11a6aa4b013ab34936ac194efa8
