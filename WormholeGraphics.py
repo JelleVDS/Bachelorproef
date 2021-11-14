@@ -1,125 +1,9 @@
+import WormholeRayTracer as wrmhole
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
-
-def read_in_pictures(sat, gar):
-    """
-    Reads in pictures for wormhole and determines the theta and
-    phi values in lists.
-    Input:  - sat: picture for the side where the camera is
-            - gar: picture for the opposite side of the wormhole
-    Output: - img_saturn: cv-form of the camera side picture
-            - img_gargantua: cv-form of the other side picture
-            - theta_list: list of all possible theta values
-            - phi_list: list of all possible phi values
-    """
-    # Inladen foto's
-    print('Reading in pictures...')
-    img_saturn    = cv2.imread(sat)
-    img_gargantua = cv2.imread(gar)
-
-    #Maak lijsten om dichtste te zoeken
-    vertical   = len(img_saturn)     #1024
-    horizontal = len(img_saturn[0])  #2048
-
-    theta_list = list()
-    for teller in range(0, vertical):
-        theta = (np.pi/vertical) * teller #- np.pi
-        theta_list.append(theta)
-
-    phi_list =list()
-    for teller in range(0, horizontal):
-        phi   = (2*np.pi/horizontal) * teller #+ np.pi
-        phi_list.append(phi)
-
-    return img_saturn, img_gargantua, theta_list, phi_list
-
-
-def photo_to_sphere(photo):
-    """
-    Give the pixels of the pictures a spherical coordinate
-    Input:  - photo: de pixels van de photo in sferische coordinaten
-    Output: - dict: een dictionary met als sleutel (theta, phi) en als waarde
-              de RGB-value van de bijbehorende pixel
-    """
-
-    dict = {}
-    vertical   = len(photo)     #1024
-    horizontal = len(photo[0])  #2048
-    for row in range(0, vertical):
-        for column in range(0, horizontal):
-            theta = (np.pi/vertical) * row #- np.pi
-            phi   = (2*np.pi/horizontal) * column #+ np.pi
-            coordinate = (theta, phi) #Tuple with angles that will be used as key
-            pixel      = np.array([photo[row][column]]) #RGB-values
-            dict[coordinate] = pixel
-
-    return dict
-
-
-def decide_universe(photo, saturn, gargantua, theta_list, phi_list):
-    """
-    Decides whether ray is in Saturn or Gargantua universe and accesses the
-    according function to determine the RGB values of the pixels.
-    Input:  - photo:     solved ray tracer
-            - saturn: spherical picture of the Saturn side
-            - gargantua: spherical picture of the other side
-    Output: - picture:   Matrix with RGB values for cv2
-    """
-    picture = []
-    for rij in range(len(photo)):
-        row = []
-        for kolom in range(len(photo[0])):
-            if photo[rij][kolom][0] < 0:
-                pixel = ray_to_rgb((photo[rij][kolom][1], photo[rij][kolom][2]), gargantua, theta_list, phi_list)
-            else:
-                pixel = ray_to_rgb((photo[rij][kolom][1], photo[rij][kolom][2]), saturn, theta_list, phi_list)
-
-            [[R, G, B]] = pixel
-            row.append([R, G, B])
-        picture.append(np.array(row))
-    # img = cv2.cvtColor(np.array(picture, np.float32), 1)
-    return np.array(picture)
-
-    # print('here 4')
-
-def distance(x, position):
-    """
-    Define a distance function for closest neighbour
-    """
-    dist = abs(x-position)
-
-    return dist
-
-
-def ray_to_rgb(position, saturn, theta_list, phi_list):
-    """
-    Determines values of the pixels for the rays at the Saturn side.
-    Input:  - position: tuple of theta and phi angles: [theta, phi]
-            - saturn: spherical picture of the Saturn side
-    Output: - List with RBG-values of corresponding pixel of the Saturn picture
-    """
-    p, t = position
-
-    theta_near = min(theta_list, key=lambda x: distance(x, t))
-    phi_near = min(phi_list, key=lambda x: distance(x, p))
-    nearest = (theta_near, phi_near)
-    RGB = saturn[nearest]
-
-    return RGB
-
-
-def make_wormhole_pic(pic, sat, gar):
-    """
-    Script to run wormhole picture as a whole.
-    """
-    img_saturn, img_gargantua, theta_list, phi_list = read_in_pictures(sat, gar)
-    saturn = photo_to_sphere(img_saturn)
-    gargantua = photo_to_sphere(img_gargantua)
-    print('Pictures ready!')
-    print('Making wormhole...')
-    picture = decide_universe(pic, saturn, gargantua, theta_list, phi_list)
-    print('Wormhole ready!')
-    return picture
+import InbeddingDiagramDNeg as Dia
+import os
 
 def Make_Pict_RB(q):
     # input: q: matrix with coordinates in configuration space on first row ouput:
@@ -164,10 +48,10 @@ def Grid_constr_2D(q, N_a, R, w):
     return on_phi | on_theta
 
 
-def Grid_constr_3D(q, N_a, R, w, Slice = None):
+def Grid_constr_3D_Sph(q, N_a, R, w, Slice = None):
     # input: q: matrix with coordinates in configuration space on first row
     #        N_a: subdivision angles
-    #        N_r: linspace radius to form grid
+    #        R: linspace radius to form grid
     #        w: ratio
     #output: 2D boolean array
     Nz, Ny =  q[0].shape
@@ -198,42 +82,56 @@ def Grid_constr_3D(q, N_a, R, w, Slice = None):
     return Slice
 
 
+def Sph_cart(psi):
+    r, phi, theta = psi
+    x = r*np.cos(phi)*np.sin(theta)
+    y = r*np.sin(phi)*np.sin(theta)
+    z = r*np.cos(theta)
+    return np.array([x,y,z])
+
+
+def Grid_constr_3D_Cart(q, N_a, R, w, Slice = None):
+    # input: q: matrix with coordinates in configuration space on first row
+    #        N_a: subdivision angles
+    #        R: linspace radius to form grid 
+    #        w: ratio
+    #output: 2D boolean array
+    Nz, Ny =  q[0].shape
+    if np.any(Slice == None):
+        Slice = np.zeros((Nz, Ny), dtype=bool)
+    Slice_inv = ~Slice
+    x, y, z = Sph_cart(q)
+    
+    # Defines point on spherical grid
+    xx = x[Slice_inv]
+    on_x = (np.abs(R - np.mod(xx, R)) < R*w) | (np.abs(np.mod(xx, R) - R) < R*w)
+    yy = y[Slice_inv]
+    on_y = (np.abs(R - np.mod(yy, R)) < R*w) | (np.abs(np.mod(yy, R) - R) < R*w)
+    zz = z[Slice_inv]
+    on_z = (np.abs(R - np.mod(zz, R)) < R*w) | (np.abs(np.mod(zz, R) - R) < R*w)
+    # Boolean conditions for when rays lands on spherical grid
+    Slice[Slice_inv] = (on_x & on_z) | (on_y & on_z) | (on_x & on_y)
+    return Slice
+
+
 def Make_Pict_RGBP(q, Grid):
     # input: q: matrix with coordinates in configuration space on first row
     # output: 3D matrix (2D matrix of rays each containing a coordinate in colorspace)
-
-    pict = []
-
-    for j in range(len(q[0])):
-        row = []
-
-        for i in range(len(q[0][0])):
-            if Grid[j,i] == True:
-                row.append([0,0,0])
-            else:
-                r = q[0][j,i]
-                phi = q[1][j,i]
-                th = q[2][j,i]
-                # colors based on sign azimutha angle and inclination
-                if phi > np.pi and th > np.pi/2:
-                    row.append([0, 1, 0])
-                elif phi > np.pi and th < np.pi/2:
-                    row.append([1, 0, 0])
-                elif phi < np.pi and th > np.pi/2:
-                    row.append([0, 0, 1])
-                elif phi < np.pi and th < np.pi/2:
-                    row.append([0.5, 0.5, 0])
-
-                if r < 0:
-                    # invert color for points on oposite side of wormhol
-                    row[-1] = [(1 - row[-1][k]) for k in range(3)]
-
-        pict.append(np.array(row))
-
+    Nz, Ny =  q[0].shape
+    pict = np.empty((Nz, Ny, 3))
+    Grid_inv = ~Grid
+    r, phi, theta = q
+    
+    pict[Grid] = np.array([0,0,0])
+    # colors based on sign azimutha angle and inclination
+    pict[((phi > np.pi) & (theta > np.pi/2)) & Grid_inv] = np.array([0, 1, 0])
+    pict[((phi > np.pi) & (theta < np.pi/2)) & Grid_inv] = np.array([1, 0, 0])
+    pict[((phi < np.pi) & (theta > np.pi/2)) & Grid_inv] = np.array([0, 0, 1])
+    pict[((phi < np.pi) & (theta < np.pi/2)) & Grid_inv] = np.array([0.5, 0.5, 0])
+    # invert color for points on oposite side of wormhole
+    pict[(r < 0) & Grid_inv] = 1 - pict[(r < 0) & Grid_inv]
+    
     pict = cv2.cvtColor(np.array(pict, np.float32), 1)
-
-    # pict = Image.fromarray(np.array(pict), 'RGB')
-
     return pict
 
 def plot_CM(CM, Label, name, path):
