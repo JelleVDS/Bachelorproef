@@ -346,7 +346,7 @@ def simulate_raytracer(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45')
         print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
     return np.array(endmom), np.array(endpos)
 
-def simulate_raytracer_fullpath(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
+def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
@@ -384,20 +384,14 @@ def simulate_raytracer_fullpath(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode 
             start_it = time.time()
             initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
             # Integrates to the solution
-            sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
+            sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=np.linspace(t_end, 0, N))
             #Reads out the data from the solution
             l_end       = sol.y[0]
             phi_end     = sol.y[1]
             # Correcting for phi and theta values out of bounds
-            while phi_end>2*np.pi:
-                phi_end = phi_end - 2*np.pi
-            while phi_end<0:
-                phi_end = phi_end + 2*np.pi
+            phi_end = np.mod(phi_end, 2*np.pi)
             theta_end   = sol.y[2]
-            while theta_end > np.pi:
-                theta_end = theta_end - np.pi
-            while theta_end < 0:
-                theta_end = theta_end + np.pi
+            theta_end = np.mod(theta_end, np.pi)
             pl_end      = sol.y[3]
             pphi_end    = sol.y[4]
             ptheta_end  = sol.y[5]
