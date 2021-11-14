@@ -5,31 +5,39 @@ import numpy as np
 import InbeddingDiagramDNeg as Dia
 import os
 
-# Inladen foto's
-print('Reading in pictures...')
-img_saturn    = cv2.imread('four400.png')
-img_gargantua = cv2.imread('negfour400.png')
-# print('here1')
-# print(img_gargantua.shape)
-# print(len(img_saturn))
+def read_in_pictures(sat, gar):
+    """
+    Reads in pictures for wormhole and determines the theta and
+    phi values in lists.
+    Input:  - sat: picture for the side where the camera is
+            - gar: picture for the opposite side of the wormhole
+    Output: - img_saturn: cv-form of the camera side picture
+            - img_gargantua: cv-form of the other side picture
+            - theta_list: list of all possible theta values
+            - phi_list: list of all possible phi values
+    """
+    # Inladen foto's
+    print('Reading in pictures...')
+    img_saturn    = cv2.imread(sat)
+    img_gargantua = cv2.imread(gar)
 
-#Maak lijsten om dichtste te zoeken
-vertical   = len(img_saturn)     #1024
-horizontal = len(img_saturn[0])  #2048
+    #Maak lijsten om dichtste te zoeken
+    vertical   = len(img_saturn)     #1024
+    horizontal = len(img_saturn[0])  #2048
 
-theta_list = list()
-for teller in range(0, vertical):
-    theta = (np.pi/vertical) * teller #- np.pi
-    theta_list.append(theta)
+    theta_list = list()
+    for teller in range(0, vertical):
+        theta = (np.pi/vertical) * teller #- np.pi
+        theta_list.append(theta)
 
-phi_list =list()
-for teller in range(0, horizontal):
-    phi   = (2*np.pi/horizontal) * teller #+ np.pi
-    # Nulpunt in het midden van het scherm zetten:
-    # if phi > 2*np.pi:
-    #     phi = phi - 2*np.pi
-    phi_list.append(phi)
-# print('here2')
+    phi_list =list()
+    for teller in range(0, horizontal):
+        phi   = (2*np.pi/horizontal) * teller #+ np.pi
+        phi_list.append(phi)
+
+    return img_saturn, img_gargantua, theta_list, phi_list
+
+
 def photo_to_sphere(photo):
     """
     Give the pixels of the pictures a spherical coordinate
@@ -45,7 +53,6 @@ def photo_to_sphere(photo):
         for column in range(0, horizontal):
             theta = (np.pi/vertical) * row #- np.pi
             phi   = (2*np.pi/horizontal) * column #+ np.pi
-            # Nulpunt in het midden van het scherm zetten:
             coordinate = (theta, phi) #Tuple with angles that will be used as key
             pixel      = np.array([photo[row][column]]) #RGB-values
             dict[coordinate] = pixel
@@ -53,18 +60,7 @@ def photo_to_sphere(photo):
     return dict
 
 
-# ph = photo_to_sphere(img_saturn)
-# im = np.array([])
-# for element in ph:
-#     print(element)
-#     theta, phi = element
-#     im[theta][phi] = ph[element]
-#
-# path = os.getcwd()
-# cv2.imwrite(os.path.join(path, 'test.png'), im)
-
-
-def decide_universe(photo, saturn, gargantua):
+def decide_universe(photo, saturn, gargantua, theta_list, phi_list):
     """
     Decides whether ray is in Saturn or Gargantua universe and accesses the
     according function to determine the RGB values of the pixels.
@@ -78,9 +74,9 @@ def decide_universe(photo, saturn, gargantua):
         row = []
         for kolom in range(len(photo[0])):
             if photo[rij][kolom][0] < 0:
-                pixel = ray_to_rgb((photo[rij][kolom][1], photo[rij][kolom][2]), gargantua)
+                pixel = ray_to_rgb((photo[rij][kolom][1], photo[rij][kolom][2]), gargantua, theta_list, phi_list)
             else:
-                pixel = ray_to_rgb((photo[rij][kolom][1], photo[rij][kolom][2]), saturn)
+                pixel = ray_to_rgb((photo[rij][kolom][1], photo[rij][kolom][2]), saturn, theta_list, phi_list)
 
             [[R, G, B]] = pixel
             row.append([R, G, B])
@@ -99,7 +95,7 @@ def distance(x, position):
     return dist
 
 
-def ray_to_rgb(position, saturn):
+def ray_to_rgb(position, saturn, theta_list, phi_list):
     """
     Determines values of the pixels for the rays at the Saturn side.
     Input:  - position: tuple of theta and phi angles: [theta, phi]
@@ -114,6 +110,20 @@ def ray_to_rgb(position, saturn):
     RGB = saturn[nearest]
 
     return RGB
+
+
+def make_wormhole_pic(pic, sat, gar):
+    """
+    Script to run wormhole picture as a whole.
+    """
+    img_saturn, img_gargantua, theta_list, phi_list = read_in_pictures(sat, gar)
+    saturn = photo_to_sphere(img_saturn)
+    gargantua = photo_to_sphere(img_gargantua)
+    print('Pictures ready!')
+    print('Making wormhole...')
+    picture = decide_universe(pic, saturn, gargantua, theta_list, phi_list)
+    print('Wormhole ready!')
+    return picture
 
 def Make_Pict_RB(q):
     # input: q: matrix with coordinates in configuration space on first row ouput:
@@ -343,5 +353,3 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
     S_X, S_Y = S_L*np.cos(S_PHI), S_L*np.sin(S_PHI)
     ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
     plt.savefig(os.path.join(path, name), dpi=150)
-    
-    

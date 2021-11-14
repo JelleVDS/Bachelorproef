@@ -9,6 +9,7 @@ import WormholePics as WPic
 import time
 #import os
 import scipy.integrate as integr
+from math import floor
 #import scipy as sc
 
 
@@ -252,22 +253,26 @@ def simulate_radius(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
         l_end       = sol.y[0][-1]
         phi_end     = sol.y[1][-1]
         #Correcting for out of bound values
-        while phi_end>2*np.pi:
-            phi_end = phi_end - 2*np.pi
-        while phi_end<0:
-            phi_end = phi_end + 2*np.pi
-        # Correcting for out of bounds values
+        # while phi_end>2*np.pi:
+        #     phi_end = phi_end - 2*np.pi
+        # while phi_end<0:
+        #     phi_end = phi_end + 2*np.pi
+        # # Correcting for out of bounds values
+
         theta_end   = sol.y[2][-1]
-        while theta_end > np.pi:
-            theta_end = theta_end - np.pi
-        while theta_end < 0:
-            theta_end = theta_end + np.pi
+
+        # while theta_end > np.pi:
+        #     theta_end = theta_end - np.pi
+        # while theta_end < 0:
+        #     theta_end = theta_end + np.pi
         pl_end      = sol.y[3][-1]
         pphi_end    = sol.y[4][-1]
         ptheta_end  = sol.y[5][-1]
         # Adding solution to the list
         endpos.append(np.array([l_end, phi_end, theta_end]))
         endmom.append(np.array([pl_end, pphi_end, ptheta_end]))
+    np.savetxt('eindposities2.txt', endpos)
+    print('radius saved!')
     return np.array(endmom), np.array(endpos)
 
 
@@ -441,7 +446,7 @@ def rotate_ray(ray, Nz, Ny):
 
             #Flip screen when left side
             if width < 0:
-                phi = -phi
+                phi = 2*np.pi - phi
             #Adjust theta relative to the upper side of the screen
             theta = z*(np.pi/Nz)
 
@@ -508,7 +513,7 @@ def DNeg_CM(p, q , Par):
 
 #def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
 
-def wormhole_with_symmetry(time=22, initialcond = [20, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0]):
+def wormhole_with_symmetry(tijd=22, initialcond = [6.68, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 1, 0.48]):
 
     """
     One function to calculate the ray and rotate it to a full picture with the
@@ -522,7 +527,7 @@ def wormhole_with_symmetry(time=22, initialcond = [20, np.pi, np.pi/2], Nz=400, 
     """
 
     start = time.time()
-    sol = simulate_radius(time, Par, initialcond, Nz, Ny, methode = 'RK45')
+    sol = simulate_radius(tijd, Par, initialcond, Nz, Ny, methode = 'BDF')
     end = time.time()
     print('Tijdsduur = ' + str(end-start))
     momenta, position = sol
