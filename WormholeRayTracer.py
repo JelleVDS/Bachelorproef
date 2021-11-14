@@ -11,12 +11,12 @@ def dneg_r(l, M , rho, a):
     # input: scalars
     # output: scalar
     # define r(l) for a DNeg wormhole without gravity
-    
+
     r = np.empty(l.shape)
     l_abs = np.abs(l)
     l_con = l_abs >= a
     inv_l_con = ~l_con
-    
+
     x = 2*(l_abs[l_con] - a)/(np.pi*M)
     r[l_con] = rho + M*(x*np.arctan2(2*(l_abs[l_con] - a), np.pi*M) - 0.5*np.log(1 + x**2))
     r[inv_l_con] = rho
@@ -26,12 +26,12 @@ def dneg_dr_dl(l, M, a):
     # input:scalars
     # output: scalar
     # define derivative of r to l
-    
+
     dr_dl = np.empty(l.shape)
     l_abs = np.abs(l)
     l_con = l_abs >= a
     inv_l_con = ~l_con
-    
+
     x = 2*(l_abs[l_con] - a)/(np.pi*M)
     dr_dl[l_con] = (2/np.pi)*np.arctan(x)*np.sign(l[l_con])
     dr_dl[inv_l_con] = 0
@@ -43,7 +43,7 @@ def dneg_d2r_dl2(l, M, a):
     # input: scalars
     # output: scalars
     # define second derivative of r to l
-    
+
     d2r_dl2 = np.empty(l.shape)
     l_abs = np.abs(l)
     l_con = l_abs >= a
@@ -512,7 +512,7 @@ def DNeg_CM(p, q , Par):
 
 #def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
 
-def wormhole_with_symmetry(tijd=22, initialcond = [6.68, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 1, 0.48]):
+def wormhole_with_symmetry(tijd=100, initialcond = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43]):
 
     """
     One function to calculate the ray and rotate it to a full picture with the
