@@ -163,29 +163,32 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
     q1 = np.transpose(np.tile(q0, (Nz, Ny,1)), (2,0,1)) + h*0.1
     q = q1
-    Motion = [[p, q]]
-    CM = []
+    Motion = np.empty((N,2,3,Nz,Ny), dtype=np.float32)
+    Motion[0] = [p, q]
+    CM_0 = np.array(DNeg_CM(p, q , Par))
+    CM = np.empty(tuple([N]+list(CM_0.shape)), dtype=np.float32)
+    CM[0] = CM_0
     Grid = np.zeros((Nz, Ny), dtype=bool)
 
     start = time.time()
 
     # Integration
-    for i in range(N):
+    for i in range(N-1):
         p, q , CM_i = integrator(p, q, Cst, h, Par)
         if mode == 0:
-            Motion.append([p, q])
-            CM.append(CM_i)
+            Motion[i+1] = [p, q]
+            CM[i+1] =  CM_i
         if Gr_D == '3D':
             # change parameters grid here
             Grid = Grid_constr_3D(q, 11, 12, 0.016, Grid)
 
     if mode == 0:
-        CM.append(DNeg_CM(p, q, Par))
-        Motion.append([p, q])
+        CM[N-1] = DNeg_CM(p, q, Par)
+        Motion[N-1] = [p, q]
     end = time.time()
 
     print(end - start)
-    return np.array(Motion), Grid, np.array(CM)
+    return Motion, Grid, CM
 
 
 def diff_equations(t, variables):
