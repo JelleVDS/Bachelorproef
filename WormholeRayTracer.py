@@ -158,7 +158,7 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
             CM.append(CM_i)
         if Gr_D == '3D':
             # change parameters grid here
-            Grid = Grid_constr_3D(q, 11, 1, 0.01, Grid)
+            Grid = Grid_constr_3D(q, 11, 8, 0.014, Grid)
 
     if mode == 0:
         CM.append(DNeg_CM(p, q, Par))
@@ -342,7 +342,7 @@ def simulate_raytracer_fullpath(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode 
     M, rho, a = Par
 
     # Reading out values and determining parameters
-    S_c = screen_cart(Nz, Ny)
+    S_c = screen_cart(Nz, Ny, 1, 1)
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
@@ -388,7 +388,7 @@ def simulate_raytracer_fullpath(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode 
         end_it = time.time()
         duration = end_it - start_it
         print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
-    return np.tranpose(np.array([endmom, endpos]), (4,0,3,1,2)) #output same shape as sympl. intgr.
+    return np.transpose(np.array([endmom, endpos]), (4,0,3,1,2)) #output same shape as sympl. intgr.
 
 
 
