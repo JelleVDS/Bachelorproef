@@ -10,7 +10,7 @@ def dneg_r(l, M , rho, a):
     # output: scalar
     # define r(l) for a DNeg wormhole without gravity
     
-    r = np.empty(len(l))
+    r = np.empty(l.shape)
     l_abs = np.abs(l)
     l_con = l_abs > a
     inv_l_con = ~l_con
@@ -25,7 +25,7 @@ def dneg_dr_dl(l, M, a):
     # output: scalar
     # define derivative of r to l
     
-    dr_dl = np.empty(len(l))
+    dr_dl = np.empty(l.shape)
     l_abs = np.abs(l)
     l_con = l_abs > a
     inv_l_con = ~l_con

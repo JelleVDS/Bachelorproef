@@ -22,9 +22,9 @@ def Sympl_DNeg(p, q, Cst, h, Par):
     l, phi, theta = q
     b, B_2 = Cst
     
-    r = np.empty(len(l))
-    dr = np.empty(len(l))
-    d2r = np.empty(len(l))
+    r = np.empty(l.shape)
+    dr = np.empty(l.shape)
+    d2r = np.empty(l.shape)
     
     l_abs = np.abs(l)
     l_con = l_abs > a
