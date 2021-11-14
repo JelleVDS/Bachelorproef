@@ -22,11 +22,21 @@ def Sympl_DNeg(p, q, Cst, h, Par):
     l, phi, theta = q
     b, B_2 = Cst
     
+    r = np.empty(len(l))
+    dr = np.empty(len(l))
+    d2r = np.empty(len(l))
+    
     l_abs = np.abs(l)
-    x = 2*(l_abs - a)/(np.pi*M)
-    r = rho + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
-    dr = 2/np.pi*np.arctan(x)*np.sign(l)
-    d2r = (4*M)/(4*a**2 + M**2*np.pi**2 + 4*l**2 - 8*a*l_abs)
+    l_con = l_abs > a
+    inv_l_con = ~l_con
+    
+    x = 2*(l_abs[l_con] - a)/(np.pi*M)
+    r[l_con] = rho + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
+    dr[l_con] = 2/np.pi*np.arctan(x)*np.sign(l[l_con])
+    d2r[l_con] = (4*M)/(4*a**2 + M**2*np.pi**2 + 4*l[l_con]**2 - 8*a*l_abs[l_con])
+    r[inv_l_con] = 0
+    dr[inv_l_con] = 0
+    d2r[inv_l_con] = 0
     
     rec_r = 1/r
     rec_r_2 = rec_r**2

@@ -7,33 +7,50 @@ from math import floor
 
 
 #Dit is op de master branch:
-def dneg_r(y, M , rho, a):
+def dneg_r(l, M , rho, a):
     # input: scalars
     # output: scalar
     # define r(l) for a DNeg wormhole without gravity
-
-    x = 2*(np.abs(y) - a)/(np.pi*M)
-    r = rho + M*(x*np.arctan2(2*(np.abs(y) - a), np.pi*M) - 0.5*np.log(1 + x**2))
-
+    
+    r = np.empty(len(l))
+    l_abs = np.abs(l)
+    l_con = l_abs > a
+    inv_l_con = ~l_con
+    
+    x = 2*(l_abs[l_con] - a)/(np.pi*M)
+    r[l_con] = rho + M*(x*np.arctan2(2*(l_abs[l_con] - a), np.pi*M) - 0.5*np.log(1 + x**2))
+    r[inv_l_con] = rho
     return r
 
-def dneg_dr_dl(y, M, a):
+def dneg_dr_dl(l, M, a):
     # input:scalars
     # output: scalar
     # define derivative of r to l
-
-    x = 2*(np.abs(y)-a)/(np.pi*M)
-    dr_dl = (2/np.pi)*np.arctan(x)*np.sign(y)
+    
+    dr_dl = np.empty(len(l))
+    l_abs = np.abs(l)
+    l_con = l_abs > a
+    inv_l_con = ~l_con
+    
+    x = 2*(l_abs[l_con] - a)/(np.pi*M)
+    dr_dl[l_con] = (2/np.pi)*np.arctan(x)*np.sign(l[l_con])
+    dr_dl[inv_l_con] = 0
 
     return dr_dl
 
 
-def dneg_d2r_dl2(y, M, a):
+def dneg_d2r_dl2(l, M, a):
     # input: scalars
     # output: scalars
     # define second derivative of r to l
+    
+    d2r_dl2 = np.empty(len(l))
+    l_abs = np.abs(l)
+    l_con = l_abs > a
+    inv_l_con = ~l_con
 
-    d2r_dl2 = (4*M)/(4*a**2 + M**2*np.pi**2 + 4*y**2 - 8*a*np.abs(y))
+    d2r_dl2[l_con] = (4*M)/(4*a**2 + M**2*np.pi**2 + 4*l[l_con]**2 - 8*a*l_abs[l_con])
+    d2r_dl2[inv_l_con] = 0
 
     return d2r_dl2
 
@@ -160,7 +177,7 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
             CM.append(CM_i)
         if Gr_D == '3D':
             # change parameters grid here
-            Grid = Grid_constr_3D(q, 11, 8, 0.014, Grid)
+            Grid = Grid_constr_3D(q, 11, 12, 0.016, Grid)
 
     if mode == 0:
         CM.append(DNeg_CM(p, q, Par))

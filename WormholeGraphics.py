@@ -158,7 +158,7 @@ def plot_CM(CM, Label, name, path):
         ax[k].set_title(Label[k]+" summed over a subdivision of rays")
     plt.tight_layout()
     plt.savefig(os.path.join(path, name), dpi=150)
-    #plt.show()
+    plt.show()
 
 
 def ray_spread(Nz, Ny):
@@ -212,7 +212,12 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
     ax = plt.figure().add_subplot(projection='3d')
     r = wrmhole.dneg_r(l, M, rho, a)
     X, Y = r*np.cos(phi), r*np.sin(phi)
-    Z = Dia.imb_f_int(l, Par)
+    
+    S_l = np.linspace(np.max(l), np.min(l), len(l))
+    Col_l = np.concatenate((l.T, np.expand_dims(S_l, axis=0)), axis=0).T
+    Col_Z = Dia.imb_f_int(Col_l, Par)
+    Z = Col_Z[:,:-1]
+    S_Z0 = Col_Z[:,-1]
 
     if np.any(reduce == False):
         for k in range(len(Sample[0,0,0])):
@@ -236,14 +241,17 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
 
     # adds surface
 
-    S_l = np.linspace(np.max(l), np.min(l), len(l)+1)
+    #S_l = np.linspace(np.max(l), np.min(l), len(l))
     S_phi = np.linspace(0, 2*np.pi, len(l))
-    S_L, S_PHI = np.meshgrid(wrmhole.dneg_r(S_l, M, rho, a), S_phi) # radius is r(l)
+    S_R, S_PHI = np.meshgrid(wrmhole.dneg_r(S_l, M, rho, a), S_phi) # radius is r(l)
 
-    # tile want symmetrisch voor rotaties, onafhankelijk van phi
-    # Integraal voor Z richting zoals gedefinieerd in de paper
-    S_Z = np.tile(Dia.imb_f_int(S_l, Par), (len(l), 1)) #z(l)
-
-    S_X, S_Y = S_L*np.cos(S_PHI), S_L*np.sin(S_PHI)
+    # tile because symmetric for rotations, undependant on phi
+    # Integral for Z direction like defined in the paper
+    S_Z = np.tile(S_Z0, (len(l), 1)) #z(l)
+    
+    S_X, S_Y = S_R*np.cos(S_PHI), S_R*np.sin(S_PHI)
+    #print(S_X.shape, S_Y.shape, S_Z.shape)
     ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
+    plt.tight_layout()
     plt.savefig(os.path.join(path, name), dpi=150)
+    plt.show()
