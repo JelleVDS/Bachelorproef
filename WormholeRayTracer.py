@@ -163,29 +163,32 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
     q1 = np.transpose(np.tile(q0, (Nz, Ny,1)), (2,0,1)) + h*0.1
     q = q1
-    Motion = [[p, q]]
-    CM = []
+    Motion = np.empty((N,2,3,Nz,Ny), dtype=np.float32)
+    Motion[0] = [p, q]
+    CM_0 = np.array(DNeg_CM(p, q , Par))
+    CM = np.empty(tuple([N]+list(CM_0.shape)), dtype=np.float32)
+    CM[0] = CM_0
     Grid = np.zeros((Nz, Ny), dtype=bool)
 
     start = time.time()
 
     # Integration
-    for i in range(N):
+    for i in range(N-1):
         p, q , CM_i = integrator(p, q, Cst, h, Par)
         if mode == 0:
-            Motion.append([p, q])
-            CM.append(CM_i)
+            Motion[i+1] = [p, q]
+            CM[i+1] =  CM_i
         if Gr_D == '3D':
             # change parameters grid here
             Grid = Grid_constr_3D(q, 11, 12, 0.016, Grid)
 
     if mode == 0:
-        CM.append(DNeg_CM(p, q, Par))
-        Motion.append([p, q])
+        CM[N-1] = DNeg_CM(p, q, Par)
+        Motion[N-1] = [p, q]
     end = time.time()
 
     print(end - start)
-    return np.array(Motion), Grid, np.array(CM)
+    return Motion, Grid, CM
 
 
 def diff_equations(t, variables):
@@ -346,7 +349,7 @@ def simulate_raytracer(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45')
         print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
     return np.array(endmom), np.array(endpos)
 
-def simulate_raytracer_fullpath(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
+def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
@@ -384,20 +387,14 @@ def simulate_raytracer_fullpath(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode 
             start_it = time.time()
             initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
             # Integrates to the solution
-            sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
+            sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=np.linspace(t_end, 0, N))
             #Reads out the data from the solution
             l_end       = sol.y[0]
             phi_end     = sol.y[1]
             # Correcting for phi and theta values out of bounds
-            while phi_end>2*np.pi:
-                phi_end = phi_end - 2*np.pi
-            while phi_end<0:
-                phi_end = phi_end + 2*np.pi
+            phi_end = np.mod(phi_end, 2*np.pi)
             theta_end   = sol.y[2]
-            while theta_end > np.pi:
-                theta_end = theta_end - np.pi
-            while theta_end < 0:
-                theta_end = theta_end + np.pi
+            theta_end = np.mod(theta_end, np.pi)
             pl_end      = sol.y[3]
             pphi_end    = sol.y[4]
             ptheta_end  = sol.y[5]

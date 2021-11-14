@@ -19,7 +19,7 @@ def Make_Pict_RB(q):
                 row.append([0, 0, 255])
         pict.append(row)
     return cv2.cvtColor(np.array(pict, np.float32), 1)
-
+""
 
 def Grid_constr_2D(q, N_a, R, w):
     # input: q: matrix with coordinates in configuration space on first row
@@ -143,7 +143,7 @@ def plot_CM(CM, Label, name, path):
     N_C = len(CM)
     cl, ind = ray_spread(Nz, Ny)
 
-    fig, ax = plt.subplots(N_C, 1)
+    fig, ax = plt.subplots(1, N_C)
     x = np.arange(len(CM[0]))
     for k in range(N_C):
         for i in range(Nz):
