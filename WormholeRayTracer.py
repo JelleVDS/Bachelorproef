@@ -535,3 +535,80 @@ def wormhole_with_symmetry(tijd=100, initialcond = [50, np.pi, np.pi/2], Nz=400,
     picture = rotate_ray(position, Nz, Ny)
     print('Ray rotated!')
     return picture
+
+
+def Sph_cart(psi):
+    r, phi, theta = psi
+    x = r*np.cos(phi)*np.sin(theta)
+    y = r*np.sin(phi)*np.sin(theta)
+    z = r*np.cos(theta)
+    return np.array([x,y,z])
+
+
+def rotation_quat(q):
+    q = q.T
+    R = np.array([
+        [q[0] ** 2 + q[1] ** 2 - q[2] ** 2 - q[3] ** 2, 2 * (q[1] * q[2] - q[0] * q[3]),
+         2 * (q[0] * q[2] + q[1] * q[3])],
+
+        [2 * (q[1] * q[2] + q[0] * q[3]), q[0] ** 2 - q[1] ** 2 + q[2] ** 2 - q[3] ** 2,
+         2 * (q[2] * q[3] - q[0] * q[1])],
+
+        [2 * (q[1] * q[3] - q[0] * q[2]), 2 * (q[0] * q[1] + q[2] * q[3]),
+         q[0] ** 2 - q[1] ** 2 - q[2] ** 2 + q[3] ** 2]
+    ])
+    if R[0, 1].shape != ():
+        return np.transpose(R, (2, 0, 1))
+    else:
+        return R
+
+def Dmeg_symm_quat(q, q0, Nz, Ny, L2=1):
+    #input  q: q along theta = pi/2 and phi>0 with coordinates on te first axis
+    #          The pixel shape should be of the form (1,Ny/2) with the pixels all being on y>0:
+    #       Ni pixels
+    #       q0: initial position   
+        
+    #output symmetrized (3,Nz,Ny) array
+    q0_cart = Sph_cart(q0)
+    S_c = screen_cart(Nz, Ny)
+    S_cT = np.transpose(S_c, (2,0,1))
+    
+    S_CT_Or = S_cT - q0_cart
+    y, z = S_CT_Or[1:]
+    r_polar = np.linalg.norm(S_CT_Or[1:], axis=0)
+    alpha = np.arctan2(z,y)
+    
+    l_cond = q[0] > 0
+    q_cart = Sph_cart(q)
+    q_cart[l_cond] += -q0_cart
+    
+    Rot_axis = q0_cart/np.linalg.norm(q0_cart)
+    R = np.linspace(0, L2/2, Ny/2)
+    
+    q_Rotated = np.empty((3, Nz, Ny))
+    for j in range(Nz):
+        for i in range(Ny):
+            alpha_k = alpha[j,i]
+            r_polar_k = r_polar[j,i]
+            
+            q = np.concatenate((
+                np.cos(alpha_k/2).reshape(1,1), 
+                np.sin(alpha_k/2)*Rot_axis), axis=0
+                )
+            
+            k = np.argmin(np.abs(R - r_polar_k))
+            q_Rotated[:,j,i] = np.dot(rotation_quat(q), q_cart[:,0,k])
+    
+    q_Rotated[l_cond] += q0_cart 
+    return cart_Sph(q_Rotated)
+    
+            
+        
+    
+    
+
+    
+    
+    
+    
+    
