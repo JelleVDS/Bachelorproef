@@ -580,9 +580,12 @@ def Dmeg_symm_quat(q, q0, Nz, Ny, L2=1):
     alpha = np.arctan2(z,y)
 
     l_cond = q[0] > 0
+    inv_l_cond = ~l_cond
+    q[0][inv_l_cond] = -q[0][inv_l_cond]
     q_cart = Sph_cart(q)
-    q_cart[l_cond] += -q0_cart
 
+    q_cart[np.tile(l_cond, (3,Nz,Ny))] += -q0_cart
+    
     Rot_axis = q0_cart/np.linalg.norm(q0_cart)
     R = np.linspace(0, L2/2, Ny/2)
 
@@ -600,5 +603,7 @@ def Dmeg_symm_quat(q, q0, Nz, Ny, L2=1):
             k = np.argmin(np.abs(R - r_polar_k))
             q_Rotated[:,j,i] = np.dot(rotation_quat(q), q_cart[:,0,k])
 
+    q_Rotated[0][inv_l_cond] = -q_Rotated[0][inv_l_cond]
     q_Rotated[l_cond] += q0_cart
+
     return cart_Sph(q_Rotated)
