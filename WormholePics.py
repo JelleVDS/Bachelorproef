@@ -28,7 +28,11 @@ def read_in_pictures(sat, gar):
 
     phi_list =list()
     for teller in range(0, horizontal):
-        phi   = (2*np.pi/horizontal) * teller #+ np.pi
+        phi   = (2*np.pi/horizontal) * teller
+        while phi>2*np.pi:
+            phi = phi - 2*np.pi
+        while phi<0:
+            phi = phi + 2*np.pi
         phi_list.append(phi)
 
     return img_saturn, img_gargantua, theta_list, phi_list
@@ -48,7 +52,11 @@ def photo_to_sphere(photo):
     for row in range(0, vertical):
         for column in range(0, horizontal):
             theta = (np.pi/vertical) * row #- np.pi
-            phi   = (2*np.pi/horizontal) * column #+ np.pi
+            phi   = (2*np.pi/horizontal) * column
+            while phi>2*np.pi:
+                phi = phi - 2*np.pi
+            while phi<0:
+                phi = phi + 2*np.pi
             coordinate = (theta, phi) #Tuple with angles that will be used as key
             pixel      = np.array([photo[row][column]]) #RGB-values
             dict[coordinate] = pixel

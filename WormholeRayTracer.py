@@ -2,6 +2,7 @@ import numpy as np
 import time
 import scipy.integrate as integr
 from math import floor
+from tqdm.auto import tqdm
 #import scipy as sc
 
 
@@ -11,12 +12,12 @@ def dneg_r(l, M , rho, a):
     # input: scalars
     # output: scalar
     # define r(l) for a DNeg wormhole without gravity
-    
+
     r = np.empty(l.shape)
     l_abs = np.abs(l)
     l_con = l_abs > a
     inv_l_con = ~l_con
-    
+
     x = 2*(l_abs[l_con] - a)/(np.pi*M)
     r[l_con] = rho + M*(x*np.arctan2(2*(l_abs[l_con] - a), np.pi*M) - 0.5*np.log(1 + x**2))
     r[inv_l_con] = rho
@@ -26,12 +27,12 @@ def dneg_dr_dl(l, M, a):
     # input:scalars
     # output: scalar
     # define derivative of r to l
-    
+
     dr_dl = np.empty(l.shape)
     l_abs = np.abs(l)
     l_con = l_abs > a
     inv_l_con = ~l_con
-    
+
     x = 2*(l_abs[l_con] - a)/(np.pi*M)
     dr_dl[l_con] = (2/np.pi)*np.arctan(x)*np.sign(l[l_con])
     dr_dl[inv_l_con] = 0
@@ -43,7 +44,7 @@ def dneg_d2r_dl2(l, M, a):
     # input: scalars
     # output: scalars
     # define second derivative of r to l
-    
+
     d2r_dl2 = np.empty(l.shape)
     l_abs = np.abs(l)
     l_con = l_abs > a
@@ -247,7 +248,7 @@ def simulate_radius(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     #Define height of the ray
     teller1 = int(len(p1)/2)
     #Loop over half of the screen
-    for teller2 in range(int(len(p1[0])/2), len(p1[0])):
+    for teller2 in tqdm(range(int(len(p1[0])/2), len(p1[0]))):
         initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
         # Integrate to the solution
         sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
@@ -278,7 +279,7 @@ def simulate_radius(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     return np.array(endmom), np.array(endpos)
 
 
-def simulate_raytracer(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
+def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np.pi, np.pi/2], Nz = 14**2, Ny = 14**2, methode = 'BDF'):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
@@ -308,7 +309,7 @@ def simulate_raytracer(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45')
     endmom = []
 
     # Looping over all momenta
-    for teller1 in range(0, len(p1)):
+    for teller1 in tqdm(range(0, len(p1))):
         row_pos = []
         row_mom = []
         start_it = time.time()
@@ -317,7 +318,7 @@ def simulate_raytracer(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45')
             start_it = time.time()
             initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
             # Integrates to the solution
-            sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
+            sol = integr.solve_ivp(diff_equations, [tijd, 0], initial_values, method = methode, t_eval=[0])
             #Reads out the data from the solution
             l_end       = sol.y[0][-1]
             phi_end     = sol.y[1][-1]
@@ -343,8 +344,9 @@ def simulate_raytracer(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45')
         endmom.append(np.array(row_mom))
         end_it = time.time()
         duration = end_it - start_it
-        print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
+        # print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
     return np.array(endmom), np.array(endpos)
+
 
 def simulate_raytracer_fullpath(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     """
@@ -512,8 +514,6 @@ def DNeg_CM(p, q , Par):
 
     return [H, b_C, B2_C]
 
-
-#def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
 
 def wormhole_with_symmetry(tijd=22, initialcond = [6.68, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 1, 0.48]):
 
