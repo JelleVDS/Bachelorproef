@@ -603,7 +603,8 @@ def Dmeg_symm_quat(q, q0, Nz, Ny, L2=1):
             k = np.argmin(np.abs(R - r_polar_k))
             q_Rotated[:,j,i] = np.dot(rotation_quat(q), q_cart[:,0,k])
 
-    q_Rotated[0][inv_l_cond] = -q_Rotated[0][inv_l_cond]
     q_Rotated[l_cond] += q0_cart
+    q_Rot_Sph = cart_Sph(q_Rotated)
+    q_Rot_Sph[0][inv_l_cond] = -q_Rot_Sph[0][inv_l_cond]
 
-    return cart_Sph(q_Rotated)
+    return q_Rot_Sph
