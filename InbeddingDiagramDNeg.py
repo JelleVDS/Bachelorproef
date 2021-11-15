@@ -12,7 +12,7 @@ def dneg_r(l, M , rho, a):
     
     r = np.empty(l.shape)
     l_abs = np.abs(l)
-    l_con = l_abs > a
+    l_con = l_abs >= a
     inv_l_con = ~l_con
     
     x = 2*(l_abs[l_con] - a)/(np.pi*M)
@@ -27,7 +27,7 @@ def dneg_dr_dl(l, M, a):
     
     dr_dl = np.empty(l.shape)
     l_abs = np.abs(l)
-    l_con = l_abs > a
+    l_con = l_abs >= a
     inv_l_con = ~l_con
     
     x = 2*(l_abs[l_con] - a)/(np.pi*M)

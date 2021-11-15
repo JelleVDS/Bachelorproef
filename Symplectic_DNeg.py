@@ -27,14 +27,14 @@ def Sympl_DNeg(p, q, Cst, h, Par):
     d2r = np.empty(l.shape)
     
     l_abs = np.abs(l)
-    l_con = l_abs > a
+    l_con = l_abs >= a
     inv_l_con = ~l_con
     
     x = 2*(l_abs[l_con] - a)/(np.pi*M)
     r[l_con] = rho + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
     dr[l_con] = 2/np.pi*np.arctan(x)*np.sign(l[l_con])
     d2r[l_con] = (4*M)/(4*a**2 + M**2*np.pi**2 + 4*l[l_con]**2 - 8*a*l_abs[l_con])
-    r[inv_l_con] = 0
+    r[inv_l_con] = rho
     dr[inv_l_con] = 0
     d2r[inv_l_con] = 0
     

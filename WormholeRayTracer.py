@@ -15,7 +15,7 @@ def dneg_r(l, M , rho, a):
 
     r = np.empty(l.shape)
     l_abs = np.abs(l)
-    l_con = l_abs > a
+    l_con = l_abs >= a
     inv_l_con = ~l_con
 
     x = 2*(l_abs[l_con] - a)/(np.pi*M)
@@ -30,7 +30,7 @@ def dneg_dr_dl(l, M, a):
 
     dr_dl = np.empty(l.shape)
     l_abs = np.abs(l)
-    l_con = l_abs > a
+    l_con = l_abs >= a
     inv_l_con = ~l_con
 
     x = 2*(l_abs[l_con] - a)/(np.pi*M)
@@ -47,7 +47,7 @@ def dneg_d2r_dl2(l, M, a):
 
     d2r_dl2 = np.empty(l.shape)
     l_abs = np.abs(l)
-    l_con = l_abs > a
+    l_con = l_abs >= a
     inv_l_con = ~l_con
 
     d2r_dl2[l_con] = (4*M)/(4*a**2 + M**2*np.pi**2 + 4*l[l_con]**2 - 8*a*l_abs[l_con])
@@ -164,29 +164,32 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
     q1 = np.transpose(np.tile(q0, (Nz, Ny,1)), (2,0,1)) + h*0.1
     q = q1
-    Motion = [[p, q]]
-    CM = []
+    Motion = np.empty((N,2,3,Nz,Ny), dtype=np.float32)
+    Motion[0] = [p, q]
+    CM_0 = np.array(DNeg_CM(p, q , Par))
+    CM = np.empty(tuple([N]+list(CM_0.shape)), dtype=np.float32)
+    CM[0] = CM_0
     Grid = np.zeros((Nz, Ny), dtype=bool)
 
     start = time.time()
 
     # Integration
-    for i in range(N):
+    for i in range(N-1):
         p, q , CM_i = integrator(p, q, Cst, h, Par)
         if mode == 0:
-            Motion.append([p, q])
-            CM.append(CM_i)
+            Motion[i+1] = [p, q]
+            CM[i+1] =  CM_i
         if Gr_D == '3D':
             # change parameters grid here
             Grid = Grid_constr_3D(q, 11, 12, 0.016, Grid)
 
     if mode == 0:
-        CM.append(DNeg_CM(p, q, Par))
-        Motion.append([p, q])
+        CM[N-1] = DNeg_CM(p, q, Par)
+        Motion[N-1] = [p, q]
     end = time.time()
 
     print(end - start)
-    return np.array(Motion), Grid, np.array(CM)
+    return Motion, Grid, CM
 
 
 def diff_equations(t, variables):
@@ -347,8 +350,7 @@ def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np
         # print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
     return np.array(endmom), np.array(endpos)
 
-
-def simulate_raytracer_fullpath(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
+def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
@@ -386,20 +388,14 @@ def simulate_raytracer_fullpath(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode 
             start_it = time.time()
             initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
             # Integrates to the solution
-            sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
+            sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=np.linspace(t_end, 0, N))
             #Reads out the data from the solution
             l_end       = sol.y[0]
             phi_end     = sol.y[1]
             # Correcting for phi and theta values out of bounds
-            while phi_end>2*np.pi:
-                phi_end = phi_end - 2*np.pi
-            while phi_end<0:
-                phi_end = phi_end + 2*np.pi
+            phi_end = np.mod(phi_end, 2*np.pi)
             theta_end   = sol.y[2]
-            while theta_end > np.pi:
-                theta_end = theta_end - np.pi
-            while theta_end < 0:
-                theta_end = theta_end + np.pi
+            theta_end = np.mod(theta_end, np.pi)
             pl_end      = sol.y[3]
             pphi_end    = sol.y[4]
             ptheta_end  = sol.y[5]
@@ -515,7 +511,9 @@ def DNeg_CM(p, q , Par):
     return [H, b_C, B2_C]
 
 
-def wormhole_with_symmetry(tijd=22, initialcond = [6.68, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 1, 0.48]):
+#def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
+
+def wormhole_with_symmetry(tijd=100, initialcond = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43]):
 
     """
     One function to calculate the ray and rotate it to a full picture with the
@@ -538,3 +536,69 @@ def wormhole_with_symmetry(tijd=22, initialcond = [6.68, np.pi, np.pi/2], Nz=200
     picture = rotate_ray(position, Nz, Ny)
     print('Ray rotated!')
     return picture
+
+
+def Sph_cart(psi):
+    r, phi, theta = psi
+    x = r*np.cos(phi)*np.sin(theta)
+    y = r*np.sin(phi)*np.sin(theta)
+    z = r*np.cos(theta)
+    return np.array([x,y,z])
+
+
+def rotation_quat(q):
+    q = q.T
+    R = np.array([
+        [q[0] ** 2 + q[1] ** 2 - q[2] ** 2 - q[3] ** 2, 2 * (q[1] * q[2] - q[0] * q[3]),
+         2 * (q[0] * q[2] + q[1] * q[3])],
+
+        [2 * (q[1] * q[2] + q[0] * q[3]), q[0] ** 2 - q[1] ** 2 + q[2] ** 2 - q[3] ** 2,
+         2 * (q[2] * q[3] - q[0] * q[1])],
+
+        [2 * (q[1] * q[3] - q[0] * q[2]), 2 * (q[0] * q[1] + q[2] * q[3]),
+         q[0] ** 2 - q[1] ** 2 - q[2] ** 2 + q[3] ** 2]
+    ])
+    if R[0, 1].shape != ():
+        return np.transpose(R, (2, 0, 1))
+    else:
+        return R
+
+def Dmeg_symm_quat(q, q0, Nz, Ny, L2=1):
+    #input  q: q along theta = pi/2 and phi>0 with coordinates on te first axis
+    #          The pixel shape should be of the form (1,Ny/2) with the pixels all being on y>0:
+    #       Ni pixels
+    #       q0: initial position
+
+    #output symmetrized (3,Nz,Ny) array
+    q0_cart = Sph_cart(q0)
+    S_c = screen_cart(Nz, Ny)
+    S_cT = np.transpose(S_c, (2,0,1))
+
+    S_CT_Or = S_cT - q0_cart
+    y, z = S_CT_Or[1:]
+    r_polar = np.linalg.norm(S_CT_Or[1:], axis=0)
+    alpha = np.arctan2(z,y)
+
+    l_cond = q[0] > 0
+    q_cart = Sph_cart(q)
+    q_cart[l_cond] += -q0_cart
+
+    Rot_axis = q0_cart/np.linalg.norm(q0_cart)
+    R = np.linspace(0, L2/2, Ny/2)
+
+    q_Rotated = np.empty((3, Nz, Ny))
+    for j in range(Nz):
+        for i in range(Ny):
+            alpha_k = alpha[j,i]
+            r_polar_k = r_polar[j,i]
+
+            q = np.concatenate((
+                np.cos(alpha_k/2).reshape(1,1),
+                np.sin(alpha_k/2)*Rot_axis), axis=0
+                )
+
+            k = np.argmin(np.abs(R - r_polar_k))
+            q_Rotated[:,j,i] = np.dot(rotation_quat(q), q_cart[:,0,k])
+
+    q_Rotated[l_cond] += q0_cart
+    return cart_Sph(q_Rotated)
