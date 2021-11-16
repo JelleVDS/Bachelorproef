@@ -74,6 +74,7 @@ def screen_cart(Nz, Ny, L1 = 1, L2=2):
     return np.array(arr).reshape(Nz, Ny, 3) #Flat array into matrix
 
 
+
 def cart_Sph(v):
     # input: matrix with cart. coord on first row,
     # output: matrix with Sph. coord on first row
@@ -412,6 +413,78 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
     return np.transpose(np.array([endmom, endpos]), (4,0,3,1,2)) #output same shape as sympl. intgr.
 
 
+def simulate_radius2(t_end = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np.pi, np.pi/2], Nz = 14**2, Ny = 14**2, methode = 'BDF'):
+    """
+    Solves the differential equations using a build in solver (solve_ivp) with
+    specified method.
+    Input:  - t_end: endtime of the Integration
+            - Par: wormhole parameters
+            - q0: position of the camera
+            - Nz: number of vertical pixels
+            - Ny: number of horizontal pixels
+            - methode: method used for solving the ivp (standerd runge-kutta of fourth order)
+
+    Output: - endmom: matrix with the momenta of the solution
+            - endpos: matrix with the positions of the solution
+    """
+    print('Initializing screen and calculating initial condition...')
+
+    # end = int(np.ceil(np.sqrt(Ny**2+Nz**2)))
+    M, rho, a = Par
+
+    S_R = np.empty((1,int(Ny/2),3))
+    S_R[:,:,0] = 0.5
+    S_R[:,:,1] = 0
+    S_R[:,:,2] = np.linspace(0,1,int(Ny/2)).reshape(1,int(Ny/2))
+    S_RT = np.transpose(S_R, (2,0,1))
+    # Reading out values and determining parameters 
+    S_R_sph = cart_Sph(S_RT)
+    p, Cst = inn_momenta(S_R, S_R_sph, Cst_DNeg, inn_mom_DNeg, Par)
+    p1, p2, p3 = p
+    q1, q2, q3 = q0
+    endpos = []
+    endmom = []
+
+    # Looping over all momenta
+    for teller1 in tqdm(range(0, len(p1))):
+        row_pos = []
+        row_mom = []
+        start_it = time.time()
+        for teller2 in range(0, len(p1[0])):
+
+            start_it = time.time()
+            initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
+            # Integrates to the solution
+            sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
+            #Reads out the data from the solution
+            l_end       = sol.y[0][-1]
+            phi_end     = sol.y[1][-1]
+            # Correcting for phi and theta values out of bounds
+            while phi_end>2*np.pi:
+                phi_end = phi_end - 2*np.pi
+            while phi_end<0:
+                phi_end = phi_end + 2*np.pi
+            theta_end   = sol.y[2][-1]
+            while theta_end > np.pi:
+                theta_end = theta_end - np.pi
+            while theta_end < 0:
+                theta_end = theta_end + np.pi
+            pl_end      = sol.y[3][-1]
+            pphi_end    = sol.y[4][-1]
+            ptheta_end  = sol.y[5][-1]
+            # adds local solution to row
+            row_pos.append(np.array([l_end, phi_end, theta_end]))
+            row_mom.append(np.array([pl_end, pphi_end, ptheta_end]))
+
+        # adds row to matrix
+        endpos.append(np.array(row_pos))
+        endmom.append(np.array(row_mom))
+        end_it = time.time()
+        duration = end_it - start_it
+        # print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
+    return np.array(endmom), np.array(endpos)
+
+
 
 def rotate_ray(ray, Nz, Ny):
     """
@@ -537,6 +610,29 @@ def wormhole_with_symmetry(tijd=100, initialcond = [50, np.pi, np.pi/2], Nz=400,
     print('Ray rotated!')
     return picture
 
+def wormhole_with_symmetry2(t_end=100, Par=[0.43/1.42953, 1, 0.43], initialcond = [50, np.pi, np.pi/2], Nz=400, Ny=400):
+
+    """
+    One function to calculate the ray and rotate it to a full picture with the
+    given parameters (used to easily run the symmetry code in other files)
+    Input:  - time: initial time (backwards integration thus end time)
+            - initialcond: initial conditions which take the form [l, phi, theta]
+            - Nz: vertical number of pixels
+            - Ny: horizontal number of pixels
+            - Par: wormhole parameters [M, rho, a]
+    Output: - picture: a 2D matrix containing the [l, phi, theta] value of the endpoint of each pixel
+    """
+
+    start = time.time()
+    sol = simulate_radius2(t_end, Par, initialcond, Nz, Ny, methode = 'BDF')
+    end = time.time()
+    print('Tijdsduur = ' + str(end-start))
+    momenta, position = sol
+
+    print('Rotating ray...')
+    picture = Dmeg_symm_quat(np.transpose(position,(2,0,1)), initialcond,Nz, Ny, L2=1)
+    print('Ray rotated!')
+    return picture
 
 def Sph_cart(psi):
     r, phi, theta = psi
@@ -574,7 +670,7 @@ def Dmeg_symm_quat(q, q0, Nz, Ny, L2=1):
     S_c = screen_cart(Nz, Ny)
     S_cT = np.transpose(S_c, (2,0,1))
 
-    S_CT_Or = S_cT - q0_cart
+    S_CT_Or = S_cT - q0_cart.reshape(3,1,1)
     y, z = S_CT_Or[1:]
     r_polar = np.linalg.norm(S_CT_Or[1:], axis=0)
     alpha = np.arctan2(z,y)
@@ -584,27 +680,30 @@ def Dmeg_symm_quat(q, q0, Nz, Ny, L2=1):
     q[0][inv_l_cond] = -q[0][inv_l_cond]
     q_cart = Sph_cart(q)
 
-    q_cart[np.tile(l_cond, (3,Nz,Ny))] += -q0_cart
+    tlc = np.tile(l_cond, (3,1,1))
+    q_cart[tlc] +=  -np.tile(q0_cart.reshape(3,1,1), tuple([1]+list(q_cart[0].shape)))[tlc]
     
     Rot_axis = q0_cart/np.linalg.norm(q0_cart)
-    R = np.linspace(0, L2/2, Ny/2)
-
+    R = np.linspace(0, L2/2, int(Ny/2))
     q_Rotated = np.empty((3, Nz, Ny))
+    lcr = np.zeros((Nz,Ny), dtype=bool)
     for j in range(Nz):
         for i in range(Ny):
             alpha_k = alpha[j,i]
             r_polar_k = r_polar[j,i]
 
             q = np.concatenate((
-                np.cos(alpha_k/2).reshape(1,1),
+                np.cos(alpha_k/2).reshape(1),
                 np.sin(alpha_k/2)*Rot_axis), axis=0
                 )
-
             k = np.argmin(np.abs(R - r_polar_k))
             q_Rotated[:,j,i] = np.dot(rotation_quat(q), q_cart[:,0,k])
-
-    q_Rotated[l_cond] += q0_cart
-    q_Rot_Sph = cart_Sph(q_Rotated)
-    q_Rot_Sph[0][inv_l_cond] = -q_Rot_Sph[0][inv_l_cond]
+            lcr[j,i] = l_cond[0,k]
+    
+    lcr_inv = ~lcr
+    tlcr = np.tile(lcr, (3,1,1))
+    q_Rotated[tlcr] += np.tile(q0_cart.reshape(3,1,1), tuple([1]+list(q_Rotated[0].shape)))[tlcr]
+    q_Rot_Sph = w.cart_Sph(q_Rotated)
+    q_Rot_Sph[0][lcr_inv] = -q_Rot_Sph[0][lcr_inv]
 
     return q_Rot_Sph
