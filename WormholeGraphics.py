@@ -221,10 +221,11 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
 
     if np.any(reduce == False):
         for k in range(len(Sample[0,0,0])):
-            if np.any(select == None):
-                geo_label = geo_label[k]
+            if np.any(geo_label == None):
+                gl = str(select[k])
             else:
-                geo_label = str(select[k])
+                gl = geo_label[k]
+            ax.plot(X[:,k], Y[:,k], Z[:,k], label= gl)
             ax.plot(X[:,k], Y[:,k], Z[:,k], label= geo_label)
         ax.scatter(X[0,0] , Y[0,0], Z[0,0], label='camera', c = 'r')
         ax.set_title("Geodesics corresponding to labeled pixel")
