@@ -250,28 +250,28 @@ def simulate_radius(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     endpos = []
     endmom = []
     #Define height of the ray
-    teller1 = int(len(p1)/2)
+    teller1 = int(len(p1)/2) - 1
     #Loop over half of the screen
-    for teller2 in tqdm(range(int(len(p1[0])/2), len(p1[0]))):
+    for teller2 in tqdm(range(int(len(p1[0])/2 - 1), len(p1[0]))):
         initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
         # Integrate to the solution
-        sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
+        sol = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=[-t_end])
         #Reads out the data from the solution
         l_end       = sol.y[0][-1]
         phi_end     = sol.y[1][-1]
         #Correcting for out of bound values
-        # while phi_end>2*np.pi:
-        #     phi_end = phi_end - 2*np.pi
-        # while phi_end<0:
-        #     phi_end = phi_end + 2*np.pi
-        # # Correcting for out of bounds values
+        while phi_end>2*np.pi:
+            phi_end = phi_end - 2*np.pi
+        while phi_end<0:
+            phi_end = phi_end + 2*np.pi
+        # Correcting for out of bounds values
 
         theta_end   = sol.y[2][-1]
 
-        # while theta_end > np.pi:
-        #     theta_end = theta_end - np.pi
-        # while theta_end < 0:
-        #     theta_end = theta_end + np.pi
+        while theta_end > np.pi:
+            theta_end = theta_end - np.pi
+        while theta_end < 0:
+            theta_end = theta_end + np.pi
         pl_end      = sol.y[3][-1]
         pphi_end    = sol.y[4][-1]
         ptheta_end  = sol.y[5][-1]
@@ -326,16 +326,19 @@ def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np
             #Reads out the data from the solution
             l_end       = sol.y[0][-1]
             phi_end     = sol.y[1][-1]
+            
             # Correcting for phi and theta values out of bounds
             while phi_end>2*np.pi:
                 phi_end = phi_end - 2*np.pi
             while phi_end<0:
                 phi_end = phi_end + 2*np.pi
+            
             theta_end   = sol.y[2][-1]
             while theta_end > np.pi:
                 theta_end = theta_end - np.pi
             while theta_end < 0:
                 theta_end = theta_end + np.pi
+                
             pl_end      = sol.y[3][-1]
             pphi_end    = sol.y[4][-1]
             ptheta_end  = sol.y[5][-1]
@@ -441,8 +444,8 @@ def rotate_ray(ray, Nz, Ny):
                 r = r-1
 
             # Carthesian coordinates of the gridpoint relative to upper left corner
-            z = int(height + Nz/2)
-            y = int(width + Ny/2)
+            z = int(-height + Nz/2) - 1
+            y = int(width + Ny/2) - 1
             # Get the corresponding values from the calculated ray
             l, phi, theta = ray[r]
 
@@ -515,7 +518,7 @@ def DNeg_CM(p, q , Par):
 
 #def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
 
-def wormhole_with_symmetry(tijd=100, initialcond = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43]):
+def wormhole_with_symmetry(tijd=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43]):
 
     """
     One function to calculate the ray and rotate it to a full picture with the
@@ -529,7 +532,7 @@ def wormhole_with_symmetry(tijd=100, initialcond = [50, np.pi, np.pi/2], Nz=400,
     """
 
     start = time.time()
-    sol = simulate_radius(tijd, Par, initialcond, Nz, Ny, methode = 'BDF')
+    sol = simulate_radius(tijd, Par, q0, Nz, Ny, methode = 'BDF')
     end = time.time()
     print('Tijdsduur = ' + str(end-start))
     momenta, position = sol
@@ -565,7 +568,7 @@ def simulate_radius2(t_end = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np.
     S_R[:,:,2] = 0
     S_RT = np.transpose(S_R, (2,0,1))
     print(S_RT)
-    # Reading out values and determining parameters 
+    # Reading out values and determining parameters
     S_R_sph = cart_Sph(S_RT)
     p, Cst = inn_momenta(S_R, S_R_sph, Cst_DNeg, inn_mom_DNeg, Par)
     p1, p2, p3 = p
@@ -680,7 +683,7 @@ def Dmeg_symm_quat(q, q0, Nz, Ny, R):
     y, z = S_CT_Or[1:]
     r_polar = np.linalg.norm(S_CT_Or[1:], axis=0)
     alpha = np.arctan2(z,y)
-    
+
     l_cond = q[0] > 0
     print(l_cond.shape, q[0].shape )
     inv_l_cond = ~l_cond
@@ -689,7 +692,7 @@ def Dmeg_symm_quat(q, q0, Nz, Ny, R):
 
     tlc = np.tile(l_cond, (3,1,1))
     q_cart[tlc] +=  -np.tile(q0_cart.reshape(3,1,1), tuple([1]+list(q_cart[0].shape)))[tlc]
-    
+
     Rot_axis = q0_cart/np.linalg.norm(q0_cart)
     q_Rotated = np.empty((3, Nz, Ny))
     lcr = np.zeros((Nz,Ny), dtype=bool)

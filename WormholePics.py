@@ -1,5 +1,7 @@
+from numba import njit
 import cv2
 import numpy as np
+from math import floor
 
 def read_in_pictures(sat, gar):
     """
@@ -37,6 +39,16 @@ def read_in_pictures(sat, gar):
 
     return img_saturn, img_gargantua, theta_list, phi_list
 
+
+
+def read_pics(saturn, gargantua):
+    
+    print('Reading in pictures...')
+    img_saturn    = cv2.imread(saturn)
+    img_gargantua = cv2.imread(gargantua)
+    
+    return img_saturn, img_gargantua
+    
 
 def photo_to_sphere(photo):
     """
@@ -90,6 +102,7 @@ def decide_universe(photo, saturn, gargantua, theta_list, phi_list):
 
     # print('here 4')
 
+@njit
 def distance(x, position):
     """
     Define a distance function for closest neighbour
@@ -98,6 +111,57 @@ def distance(x, position):
 
     return dist
 
+
+def determine_theta(Nz, theta):
+    """
+    Determines the location of the ray in the picture.
+    Input:  - Nz: height of the picture in pixels
+            - theta: the theta value of the ray
+    Output: - i: row of the ray
+    """
+    i = int(floor(Nz * theta / np.pi))
+    return i
+
+
+def determine_phi(Ny, phi):
+    """
+    Determines the location of the ray in the picture.
+    Input:  - Ny: height of the picture in pixels
+            - phi: the phi value of the ray
+    Output: - j: column of the ray
+    """
+    j = int(floor(Ny * phi / (2 * np.pi)))
+    return j
+
+
+def make_picture(photo, gargantua, saturn):
+    Nz = len(photo)
+    Ny = len(photo[0])
+    
+    pic = np.empty([Nz, Ny, 3])
+    for rij in range(0, Nz):
+        for kolom in range(0, Ny):
+            element = photo[rij][kolom]
+            l, phi, theta = element
+            loctheta = determine_theta(Nz, theta)
+            locphi = determine_phi(Ny, phi)
+            if l < 0:
+                pic[rij][kolom] = gargantua[loctheta][locphi]
+            else:
+                pic[rij][kolom] = saturn[loctheta][locphi]
+    return pic
+
+
+def make_pic_quick(pic, sat, gar):
+    
+    img_saturn, img_gargantua = read_pics(sat, gar)
+    print('Pictures ready!')
+    print('Making wormhole...')
+    picture = make_picture(pic, img_saturn, img_gargantua)
+    print('Wormhole ready!')
+    
+    return picture
+    
 
 def ray_to_rgb(position, saturn, theta_list, phi_list):
     """
