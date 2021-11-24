@@ -669,51 +669,72 @@ def rotation_quat(q):
 
 def Dmeg_symm_quat(q, q0, Nz, Ny, R):
     #input  q: q along theta = pi/2 and phi>0 with coordinates on te first axis
-    #          The pixel shape should be of the form (1,Ny/2) with the pixels all being on y>0:
+    #          The pixel shape should be of the form (N,1) with the pixels all being on y>0:
     #       Ni pixels
     #       q0: initial position
+    #       R: initial radius of integrated axis
+    #output: 3D array with coordinates on the first axis 2D pixels on last two
 
-    #output symmetrized (3,Nz,Ny) array
     print(q.shape)
-    q0_cart = Sph_cart(q0)
+    q0_cart = Sph_cart(q0) #initial condition to cartesian coordinates
+    #Set up screen
     S_c = screen_cart(Nz, Ny)
     S_cT = np.transpose(S_c, (2,0,1))
 
-    S_CT_Or = S_cT - q0_cart.reshape(3,1,1)
-    y, z = S_CT_Or[1:]
-    r_polar = np.linalg.norm(S_CT_Or[1:], axis=0)
+    y, z = S_cT[1:] # y, z coordinates screen
+    # get radius and angle pixel in 2D
+    r_polar = np.linalg.norm(S_cT[1:], axis=0)
     alpha = np.arctan2(z,y)
-
+    
+    # boolean array to check sgn l
     l_cond = q[0] > 0
     print(l_cond.shape, q[0].shape )
+    # inverse boolean condition
     inv_l_cond = ~l_cond
+    # set l postive on the other side and change to cartesian coordinates
     q[0][inv_l_cond] = -q[0][inv_l_cond]
     q_cart = Sph_cart(q)
-
+    
+    #set stationary point for our celestial sphere to camera (by chanching origin to camera)
     tlc = np.tile(l_cond, (3,1,1))
     q_cart[tlc] +=  -np.tile(q0_cart.reshape(3,1,1), tuple([1]+list(q_cart[0].shape)))[tlc]
 
+    #rotation axis: unit vector to camera 
     Rot_axis = q0_cart/np.linalg.norm(q0_cart)
+    #array that containts sign for the axis based on location celestial sphere
+    sgn = np.empty(q_cart[0].shape)
+    sgn[l_cond] = 1
+    sgn[inv_l_cond] = -1
+    print(sgn.shape)
+    #prepare arrays to be filled in
     q_Rotated = np.empty((3, Nz, Ny))
     lcr = np.zeros((Nz,Ny), dtype=bool)
     for j in range(Nz):
         for i in range(Ny):
-            alpha_k = alpha[j,i]
+            # get radius pixel
             r_polar_k = r_polar[j,i]
-
-            q = np.concatenate((
+            # check which value of the integrated axis is the closests
+            k = np.argmin(np.abs(R - r_polar_k))
+            # get angke pixel and flip based on location end point of the closest integrated value
+            alpha_k = alpha[j,i]*sgn[k,0]
+            
+            #create quaternion based on angle and rotation axis
+            quat = np.concatenate((
                 np.cos(alpha_k/2).reshape(1),
                 np.sin(alpha_k/2)*Rot_axis), axis=0
                 )
-            k = np.argmin(np.abs(R - r_polar_k))
-            #print(q_cart[:,k,0])
-            q_Rotated[:,j,i] = np.dot(rotation_quat(q), q_cart[:,k,0])
+            # rotate integrated value by turning quaterion into rotation matrix
+            q_Rotated[:,j,i] = np.dot(rotation_quat(quat), q_cart[:,k,0])
+            # copy the boolean condidition for which celestial sphere over to array of the shape of the new screen.
             lcr[j,i] = l_cond[k,0]
     print(q_Rotated.shape)
+    # move origin back to camera on or celestial sphere
     lcr_inv = ~lcr
     tlcr = np.tile(lcr, (3,1,1))
     q_Rotated[tlcr] += np.tile(q0_cart.reshape(3,1,1), tuple([1]+list(q_Rotated[0].shape)))[tlcr]
+    # go back to spherical coordinates
     q_Rot_Sph = cart_Sph(q_Rotated)
+    # swap the sgn of l again on the other celestial sphere
     q_Rot_Sph[0][lcr_inv] = -q_Rot_Sph[0][lcr_inv]
 
     return q_Rot_Sph
