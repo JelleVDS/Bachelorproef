@@ -556,12 +556,13 @@ def simulate_radius2(t_end = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np.
 
     Output: - endmom: matrix with the momenta of the solution
             - endpos: matrix with the positions of the solution
+            S_RT[1]: initial location pixels on y-axis, thus radius of the pixel 
     """
     print('Initializing screen and calculating initial condition...')
 
     # end = int(np.ceil(np.sqrt(Ny**2+Nz**2)))
     M, rho, a = Par
-
+    # make only pixels along positive y-axis at a distance 0.5 infront of the camera
     S_R = np.empty((Ny,1,3))
     S_R[:,:,0] = 0.5
     S_R[:,:,1] = np.linspace(0,1,Ny).reshape(Ny,1)
