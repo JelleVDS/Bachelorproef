@@ -250,28 +250,28 @@ def simulate_radius(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     endpos = []
     endmom = []
     #Define height of the ray
-    teller1 = int(len(p1)/2)
+    teller1 = int(len(p1)/2) - 1
     #Loop over half of the screen
-    for teller2 in tqdm(range(int(len(p1[0])/2), len(p1[0]))):
+    for teller2 in tqdm(range(int(len(p1[0])/2 - 1), len(p1[0]))):
         initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
         # Integrate to the solution
-        sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
+        sol = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=[-t_end])
         #Reads out the data from the solution
         l_end       = sol.y[0][-1]
         phi_end     = sol.y[1][-1]
         #Correcting for out of bound values
-        # while phi_end>2*np.pi:
-        #     phi_end = phi_end - 2*np.pi
-        # while phi_end<0:
-        #     phi_end = phi_end + 2*np.pi
-        # # Correcting for out of bounds values
+        while phi_end>2*np.pi:
+            phi_end = phi_end - 2*np.pi
+        while phi_end<0:
+            phi_end = phi_end + 2*np.pi
+        # Correcting for out of bounds values
 
         theta_end   = sol.y[2][-1]
 
-        # while theta_end > np.pi:
-        #     theta_end = theta_end - np.pi
-        # while theta_end < 0:
-        #     theta_end = theta_end + np.pi
+        while theta_end > np.pi:
+            theta_end = theta_end - np.pi
+        while theta_end < 0:
+            theta_end = theta_end + np.pi
         pl_end      = sol.y[3][-1]
         pphi_end    = sol.y[4][-1]
         ptheta_end  = sol.y[5][-1]
@@ -326,16 +326,19 @@ def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np
             #Reads out the data from the solution
             l_end       = sol.y[0][-1]
             phi_end     = sol.y[1][-1]
+            
             # Correcting for phi and theta values out of bounds
             while phi_end>2*np.pi:
                 phi_end = phi_end - 2*np.pi
             while phi_end<0:
                 phi_end = phi_end + 2*np.pi
+            
             theta_end   = sol.y[2][-1]
             while theta_end > np.pi:
                 theta_end = theta_end - np.pi
             while theta_end < 0:
                 theta_end = theta_end + np.pi
+                
             pl_end      = sol.y[3][-1]
             pphi_end    = sol.y[4][-1]
             ptheta_end  = sol.y[5][-1]
@@ -351,7 +354,7 @@ def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np
         # print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
     return np.array(endmom), np.array(endpos)
 
-def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
+def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'BDF'):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
@@ -413,77 +416,6 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
     return np.transpose(np.array([endmom, endpos]), (4,0,3,1,2)) #output same shape as sympl. intgr.
 
 
-def simulate_radius2(t_end = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np.pi, np.pi/2], Nz = 14**2, Ny = 14**2, methode = 'BDF'):
-    """
-    Solves the differential equations using a build in solver (solve_ivp) with
-    specified method.
-    Input:  - t_end: endtime of the Integration
-            - Par: wormhole parameters
-            - q0: position of the camera
-            - Nz: number of vertical pixels
-            - Ny: number of horizontal pixels
-            - methode: method used for solving the ivp (standerd runge-kutta of fourth order)
-
-    Output: - endmom: matrix with the momenta of the solution
-            - endpos: matrix with the positions of the solution
-    """
-    print('Initializing screen and calculating initial condition...')
-
-    # end = int(np.ceil(np.sqrt(Ny**2+Nz**2)))
-    M, rho, a = Par
-
-    S_R = np.empty((1,int(Ny/2),3))
-    S_R[:,:,0] = 0.5
-    S_R[:,:,1] = 0
-    S_R[:,:,2] = np.linspace(0,1,int(Ny/2)).reshape(1,int(Ny/2))
-    S_RT = np.transpose(S_R, (2,0,1))
-    # Reading out values and determining parameters 
-    S_R_sph = cart_Sph(S_RT)
-    p, Cst = inn_momenta(S_R, S_R_sph, Cst_DNeg, inn_mom_DNeg, Par)
-    p1, p2, p3 = p
-    q1, q2, q3 = q0
-    endpos = []
-    endmom = []
-
-    # Looping over all momenta
-    for teller1 in tqdm(range(0, len(p1))):
-        row_pos = []
-        row_mom = []
-        start_it = time.time()
-        for teller2 in range(0, len(p1[0])):
-
-            start_it = time.time()
-            initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
-            # Integrates to the solution
-            sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
-            #Reads out the data from the solution
-            l_end       = sol.y[0][-1]
-            phi_end     = sol.y[1][-1]
-            # Correcting for phi and theta values out of bounds
-            while phi_end>2*np.pi:
-                phi_end = phi_end - 2*np.pi
-            while phi_end<0:
-                phi_end = phi_end + 2*np.pi
-            theta_end   = sol.y[2][-1]
-            while theta_end > np.pi:
-                theta_end = theta_end - np.pi
-            while theta_end < 0:
-                theta_end = theta_end + np.pi
-            pl_end      = sol.y[3][-1]
-            pphi_end    = sol.y[4][-1]
-            ptheta_end  = sol.y[5][-1]
-            # adds local solution to row
-            row_pos.append(np.array([l_end, phi_end, theta_end]))
-            row_mom.append(np.array([pl_end, pphi_end, ptheta_end]))
-
-        # adds row to matrix
-        endpos.append(np.array(row_pos))
-        endmom.append(np.array(row_mom))
-        end_it = time.time()
-        duration = end_it - start_it
-        # print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
-    return np.array(endmom), np.array(endpos)
-
 
 
 def rotate_ray(ray, Nz, Ny):
@@ -512,8 +444,8 @@ def rotate_ray(ray, Nz, Ny):
                 r = r-1
 
             # Carthesian coordinates of the gridpoint relative to upper left corner
-            z = int(height + Nz/2)
-            y = int(width + Ny/2)
+            z = int(-height + Nz/2) - 1
+            y = int(width + Ny/2) - 1
             # Get the corresponding values from the calculated ray
             l, phi, theta = ray[r]
 
@@ -586,7 +518,7 @@ def DNeg_CM(p, q , Par):
 
 #def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
 
-def wormhole_with_symmetry(tijd=100, initialcond = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43]):
+def wormhole_with_symmetry(tijd=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43]):
 
     """
     One function to calculate the ray and rotate it to a full picture with the
@@ -600,7 +532,7 @@ def wormhole_with_symmetry(tijd=100, initialcond = [50, np.pi, np.pi/2], Nz=400,
     """
 
     start = time.time()
-    sol = simulate_radius(tijd, Par, initialcond, Nz, Ny, methode = 'BDF')
+    sol = simulate_radius(tijd, Par, q0, Nz, Ny, methode = 'BDF')
     end = time.time()
     print('Tijdsduur = ' + str(end-start))
     momenta, position = sol
@@ -609,6 +541,81 @@ def wormhole_with_symmetry(tijd=100, initialcond = [50, np.pi, np.pi/2], Nz=400,
     picture = rotate_ray(position, Nz, Ny)
     print('Ray rotated!')
     return picture
+
+
+def simulate_radius2(t_end = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np.pi, np.pi/2], Nz = 14**2, Ny = 14**2, methode = 'BDF'):
+    """
+    Solves the differential equations using a build in solver (solve_ivp) with
+    specified method.
+    Input:  - t_end: endtime of the Integration
+            - Par: wormhole parameters
+            - q0: position of the camera
+            - Nz: number of vertical pixels
+            - Ny: number of horizontal pixels
+            - methode: method used for solving the ivp (standerd runge-kutta of fourth order)
+
+    Output: - endmom: matrix with the momenta of the solution
+            - endpos: matrix with the positions of the solution
+            S_RT[1]: initial location pixels on y-axis, thus radius of the pixel 
+    """
+    print('Initializing screen and calculating initial condition...')
+
+    # end = int(np.ceil(np.sqrt(Ny**2+Nz**2)))
+    M, rho, a = Par
+    # make only pixels along positive y-axis at a distance 0.5 infront of the camera
+    S_R = np.empty((Ny,1,3))
+    S_R[:,:,0] = 0.5
+    S_R[:,:,1] = np.linspace(0,1,Ny).reshape(Ny,1)
+    S_R[:,:,2] = 0
+    S_RT = np.transpose(S_R, (2,0,1))
+    print(S_RT)
+    # Reading out values and determining parameters
+    S_R_sph = cart_Sph(S_RT)
+    p, Cst = inn_momenta(S_R, S_R_sph, Cst_DNeg, inn_mom_DNeg, Par)
+    p1, p2, p3 = p
+    q1, q2, q3 = q0
+    endpos = []
+    endmom = []
+
+    # Looping over all momenta
+    for teller1 in range(0, len(p1)):
+        row_pos = []
+        row_mom = []
+        start_it = time.time()
+        for teller2 in range(0, len(p1[0])):
+
+            start_it = time.time()
+            initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
+            # Integrates to the solution
+            sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=[0])
+            #Reads out the data from the solution
+            l_end       = sol.y[0][-1]
+            phi_end     = sol.y[1][-1]
+            # Correcting for phi and theta values out of bounds
+            while phi_end>2*np.pi:
+                phi_end = phi_end - 2*np.pi
+            while phi_end<0:
+                phi_end = phi_end + 2*np.pi
+            theta_end   = sol.y[2][-1]
+            while theta_end > np.pi:
+                theta_end = theta_end - np.pi
+            while theta_end < 0:
+                theta_end = theta_end + np.pi
+            pl_end      = sol.y[3][-1]
+            pphi_end    = sol.y[4][-1]
+            ptheta_end  = sol.y[5][-1]
+            # adds local solution to row
+            row_pos.append(np.array([l_end, phi_end, theta_end]))
+            row_mom.append(np.array([pl_end, pphi_end, ptheta_end]))
+
+        # adds row to matrix
+        endpos.append(np.array(row_pos))
+        endmom.append(np.array(row_mom))
+        end_it = time.time()
+        duration = end_it - start_it
+        # print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
+    return [np.array(endmom), np.array(endpos)], [S_RT[1]]
+
 
 def wormhole_with_symmetry2(t_end=100, Par=[0.43/1.42953, 1, 0.43], initialcond = [50, np.pi, np.pi/2], Nz=400, Ny=400):
 
@@ -627,10 +634,12 @@ def wormhole_with_symmetry2(t_end=100, Par=[0.43/1.42953, 1, 0.43], initialcond 
     sol = simulate_radius2(t_end, Par, initialcond, Nz, Ny, methode = 'BDF')
     end = time.time()
     print('Tijdsduur = ' + str(end-start))
-    momenta, position = sol
+    p_q, D = sol
+    momenta, position = p_q
+    R = D[0]
 
     print('Rotating ray...')
-    picture = Dmeg_symm_quat(np.transpose(position,(2,0,1)), initialcond,Nz, Ny, L2=1)
+    picture = Dmeg_symm_quat(np.transpose(position,(2,0,1)), initialcond, Nz, Ny, R)
     print('Ray rotated!')
     return picture
 
@@ -659,51 +668,74 @@ def rotation_quat(q):
     else:
         return R
 
-def Dmeg_symm_quat(q, q0, Nz, Ny, L2=1):
+def Dmeg_symm_quat(q, q0, Nz, Ny, R):
     #input  q: q along theta = pi/2 and phi>0 with coordinates on te first axis
-    #          The pixel shape should be of the form (1,Ny/2) with the pixels all being on y>0:
+    #          The pixel shape should be of the form (N,1) with the pixels all being on y>0:
     #       Ni pixels
     #       q0: initial position
+    #       R: initial radius of integrated axis
+    #output: 3D array with coordinates on the first axis 2D pixels on last two
 
-    #output symmetrized (3,Nz,Ny) array
-    q0_cart = Sph_cart(q0)
+    print(q.shape)
+    q0_cart = Sph_cart(q0) #initial condition to cartesian coordinates
+    #Set up screen
     S_c = screen_cart(Nz, Ny)
     S_cT = np.transpose(S_c, (2,0,1))
 
-    S_CT_Or = S_cT - q0_cart.reshape(3,1,1)
-    y, z = S_CT_Or[1:]
-    r_polar = np.linalg.norm(S_CT_Or[1:], axis=0)
+    y, z = S_cT[1:] # y, z coordinates screen
+    # get radius and angle pixel in 2D
+    r_polar = np.linalg.norm(S_cT[1:], axis=0)
     alpha = np.arctan2(z,y)
-
+    
+    # boolean array to check sgn l
     l_cond = q[0] > 0
+    print(l_cond.shape, q[0].shape )
+    # inverse boolean condition
     inv_l_cond = ~l_cond
+    # set l postive on the other side and change to cartesian coordinates
     q[0][inv_l_cond] = -q[0][inv_l_cond]
     q_cart = Sph_cart(q)
-
+    
+    #set stationary point for our celestial sphere to camera (by chanching origin to camera)
     tlc = np.tile(l_cond, (3,1,1))
     q_cart[tlc] +=  -np.tile(q0_cart.reshape(3,1,1), tuple([1]+list(q_cart[0].shape)))[tlc]
-    
+
+    #rotation axis: unit vector to camera 
     Rot_axis = q0_cart/np.linalg.norm(q0_cart)
-    R = np.linspace(0, L2/2, int(Ny/2))
+    #array that containts sign for the axis based on location celestial sphere
+    sgn = np.empty(q_cart[0].shape)
+    sgn[l_cond] = 1
+    sgn[inv_l_cond] = -1
+    print(sgn.shape)
+    #prepare arrays to be filled in
     q_Rotated = np.empty((3, Nz, Ny))
     lcr = np.zeros((Nz,Ny), dtype=bool)
     for j in range(Nz):
         for i in range(Ny):
-            alpha_k = alpha[j,i]
+            # get radius pixel
             r_polar_k = r_polar[j,i]
-
-            q = np.concatenate((
+            # check which value of the integrated axis is the closests
+            k = np.argmin(np.abs(R - r_polar_k))
+            # get angke pixel and flip based on location end point of the closest integrated value
+            alpha_k = alpha[j,i]*sgn[k,0]
+            
+            #create quaternion based on angle and rotation axis
+            quat = np.concatenate((
                 np.cos(alpha_k/2).reshape(1),
                 np.sin(alpha_k/2)*Rot_axis), axis=0
                 )
-            k = np.argmin(np.abs(R - r_polar_k))
-            q_Rotated[:,j,i] = np.dot(rotation_quat(q), q_cart[:,0,k])
-            lcr[j,i] = l_cond[0,k]
-    
+            # rotate integrated value by turning quaterion into rotation matrix
+            q_Rotated[:,j,i] = np.dot(rotation_quat(quat), q_cart[:,k,0])
+            # copy the boolean condidition for which celestial sphere over to array of the shape of the new screen.
+            lcr[j,i] = l_cond[k,0]
+    print(q_Rotated.shape)
+    # move origin back to camera on or celestial sphere
     lcr_inv = ~lcr
     tlcr = np.tile(lcr, (3,1,1))
     q_Rotated[tlcr] += np.tile(q0_cart.reshape(3,1,1), tuple([1]+list(q_Rotated[0].shape)))[tlcr]
-    q_Rot_Sph = w.cart_Sph(q_Rotated)
+    # go back to spherical coordinates
+    q_Rot_Sph = cart_Sph(q_Rotated)
+    # swap the sgn of l again on the other celestial sphere
     q_Rot_Sph[0][lcr_inv] = -q_Rot_Sph[0][lcr_inv]
 
     return q_Rot_Sph

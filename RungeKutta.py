@@ -1,24 +1,34 @@
 
 import numpy as np
 
-def dneg_r(y, M=0.43/1.42953 , rho=1, a=0):
+def dneg_r(l, M , rho, a):
     # input: scalars
     # output: scalar
     # define r(l) for a DNeg wormhole without gravity
 
-    x = 2*(np.abs(y) - a)/(np.pi*M)
-    r = rho + M*(x*np.arctan(x) - 0.5*np.log(1 + x**2))
+    r = np.empty(l.shape)
+    l_abs = np.abs(l)
+    l_con = l_abs >= a
+    inv_l_con = ~l_con
 
+    x = 2*(l_abs[l_con] - a)/(np.pi*M)
+    r[l_con] = rho + M*(x*np.arctan2(2*(l_abs[l_con] - a), np.pi*M) - 0.5*np.log(1 + x**2))
+    r[inv_l_con] = rho
     return r
 
-
-def dneg_dr_dl(y, M=0.43/1.42953, a=0):
+def dneg_dr_dl(l, M, a):
     # input:scalars
     # output: scalar
     # define derivative of r to l
 
-    x = 2*(a-np.abs(y))/(np.pi*M)
-    dr_dl = -2/np.pi*np.arctan(x)*np.sign(y)
+    dr_dl = np.empty(l.shape)
+    l_abs = np.abs(l)
+    l_con = l_abs >= a
+    inv_l_con = ~l_con
+
+    x = 2*(l_abs[l_con] - a)/(np.pi*M)
+    dr_dl[l_con] = (2/np.pi)*np.arctan(x)*np.sign(l[l_con])
+    dr_dl[inv_l_con] = 0
 
     return dr_dl
 
