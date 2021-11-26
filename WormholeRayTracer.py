@@ -379,18 +379,16 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
     p1, p2, p3 = p
     q1, q2, q3 = q0
-    endpos = []
-    endmom = []
+    endpos = np.empty((Nz,Ny,3,N))
+    endmom = np.empty((Nz,Ny,3,N))
 
     # Looping over all momenta
-    for teller1 in range(0, len(p1)):
-        row_pos = []
-        row_mom = []
+    for j in range(0, len(p1)):
         start_it = time.time()
-        for teller2 in range(0, len(p1[0])):
+        for i in range(0, len(p1[0])):
 
             start_it = time.time()
-            initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
+            initial_values = np.array([q1, q2, q3, p1[j][i], p2[j][i], p3[j][i], M, rho, a])
             # Integrates to the solution
             sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=np.linspace(t_end, 0, N))
             #Reads out the data from the solution
@@ -403,16 +401,13 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
             pl_end      = sol.y[3]
             pphi_end    = sol.y[4]
             ptheta_end  = sol.y[5]
-            # adds local solution to row
-            row_pos.append(np.array([l_end, phi_end, theta_end]))
-            row_mom.append(np.array([pl_end, pphi_end, ptheta_end]))
+            # adds local solution to matrix
+            endpos[j,i] = [l_end, phi_end, theta_end]
+            endmom[j,i] = [pl_end, pphi_end, ptheta_end]
 
-        # adds row to matrix
-        endpos.append(np.array(row_pos))
-        endmom.append(np.array(row_mom))
         end_it = time.time()
         duration = end_it - start_it
-        print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
+        print('Iteration ' + str((j, i)) + ' completed in ' + str(duration) + 's.')
     return np.transpose(np.array([endmom, endpos]), (4,0,3,1,2)) #output same shape as sympl. intgr.
 
 

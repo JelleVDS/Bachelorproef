@@ -124,10 +124,10 @@ def Make_Pict_RGBP(q, Grid):
     
     pict[Grid] = np.array([0,0,0])
     # colors based on sign azimutha angle and inclination
-    pict[((phi > np.pi) & (theta > np.pi/2)) & Grid_inv] = np.array([0, 1, 0])
-    pict[((phi > np.pi) & (theta < np.pi/2)) & Grid_inv] = np.array([1, 0, 0])
-    pict[((phi < np.pi) & (theta > np.pi/2)) & Grid_inv] = np.array([0, 0, 1])
-    pict[((phi < np.pi) & (theta < np.pi/2)) & Grid_inv] = np.array([0.5, 0.5, 0])
+    pict[((np.mod(phi, 2*np.pi) > np.pi) & (np.mod(phi, np.pi) > np.pi/2)) & Grid_inv] = np.array([0, 1, 0])
+    pict[((np.mod(phi, 2*np.pi) > np.pi) & (np.mod(phi, np.pi) < np.pi/2)) & Grid_inv] = np.array([1, 0, 0])
+    pict[((np.mod(phi, 2*np.pi) < np.pi) & (np.mod(phi, np.pi) > np.pi/2)) & Grid_inv] = np.array([0, 0, 1])
+    pict[((np.mod(phi, 2*np.pi) < np.pi) & (np.mod(phi, np.pi) < np.pi/2)) & Grid_inv] = np.array([0.5, 0.5, 0])
     # invert color for points on oposite side of wormhole
     pict[(r < 0) & Grid_inv] = 1 - pict[(r < 0) & Grid_inv]
     
