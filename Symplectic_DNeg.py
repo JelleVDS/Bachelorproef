@@ -20,7 +20,7 @@ def Sympl_DNeg(p, q, Cst, h, Par):
     M, rho, a = Par
     p_l, p_phi, p_th = p
     l, phi, theta = q
-    #b, B_2 = Cst
+    b, B_2 = Cst
     
     P = np.zeros(tuple([3,6]+list(p_l.shape)))
     Q = np.zeros(tuple([3,6]+list(p_l.shape)))
@@ -53,10 +53,9 @@ def Sympl_DNeg(p, q, Cst, h, Par):
     cos1 = np.cos(theta)
     rec_sin2 = rec_sin1**2
     rec_sin3 = rec_sin1*rec_sin2
-    
-    b = p_phi
-    B_2 = p_th**2 + p_phi**2*rec_sin2
-    c = 0.5*r*d2r - 1.5*dr**2
+
+    dr_2 = dr**2
+    c = 0.5*r*d2r - 1.5*dr_2
     d = dr*rec_r
     w = p_l*d
     e = 0.5*p_l*np.sin(2*theta)*r*dr
@@ -71,7 +70,7 @@ def Sympl_DNeg(p, q, Cst, h, Par):
     b_C = sum_subd(p_phi)
     
     Q[0,1] = p_l
-    Q[1,1] = b*rec_sin1**2*rec_r_2
+    Q[1,1] = b*rec_sin2*rec_r_2
     Q[2,1] = p_th*rec_r_2
 
     P[0,1] = B_2*dr*rec_r_3
@@ -79,10 +78,11 @@ def Sympl_DNeg(p, q, Cst, h, Par):
     
     m = Q[2,1]*cos1*rec_sin1
     phi1_2 = Q[1,1]**2
+    y = p_th*w
 
     Q[0,2] = 0.5*P[0,1]
     Q[1,2] = -Q[1,1]*(w + m)
-    Q[2,2] = (0.5*P[2,1] - p_th*w)*rec_r_2
+    Q[2,2] = (0.5*P[2,1] - y)*rec_r_2
 
     P[0,2] = p_l*rec_r_2**2*B_2*c
     P[2,2] = -phi1_2*(e + f)
@@ -91,13 +91,16 @@ def Sympl_DNeg(p, q, Cst, h, Par):
     Q[1,3] = 2*Q[1,1]*Q[2,1]*m*w
     Q[2,3] = -phi1_2*rec_r_2*(e + 0.5*f)
     
-    P[0,3] = 0.5*phi1_2*Q[2,1]*g*d
-    P[2,3] = -phi1_2*p_th*g*w
+    s = phi1_2*g
+    o = 0.5*s*Q[2,1]
+    
+    P[0,3] = o*d
+    P[2,3] = -s*y
     
     Q[0,4] = 0.5*P[0,3]
     Q[2,4] = 0.75*P[2,3]*rec_r_2
     
-    P[0,4] = 0.5*p_l*phi1_2*Q[2,1]**2*g*(c - 2*dr**2)
+    P[0,4] = p_l*o*Q[2,1]*(c - 2*dr_2)
     
     Q[0,5] = 0.5*P[0,4]
     
