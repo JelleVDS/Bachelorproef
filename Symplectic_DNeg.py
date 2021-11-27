@@ -66,7 +66,7 @@ def Sympl_DNeg(p, q, Cst, h, Par):
     H2 = p_th**2*rec_r_2
     H3 = p_phi**2*rec_sin2*rec_r_2
     H = 0.5*sum_subd((H1 + H2 + H3))
-    B2_C = sum_subd(B_2)
+    B2_C = sum_subd(p_th**2 + p_phi**2*rec_sin2)
     b_C = sum_subd(p_phi)
     
     Q[0,1] = p_l
