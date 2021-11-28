@@ -1,4 +1,4 @@
-import WormholeRayTracer as wrmhole
+import WormholeRayTracer as w
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -165,7 +165,7 @@ def ray_spread(Nz, Ny):
     # input: Ny: amount of horizontal arrays, Nz: amount of vertical arrays
     # output: cl: color based on deviation of the norm of a ray compared to direction obeserver is facing
             #ind ind of original ray mapped to colormap
-    S_c = wrmhole.screen_cart(Nz, Ny, 1, 1)
+    S_c = w.screen_cart(Nz, Ny, 1, 1)
     S_cT = np.transpose(S_c, (2,0,1))
     n = np.linalg.norm(S_cT, axis=0)
     n_u, ind = np. unique(n, return_inverse=True)
@@ -210,7 +210,7 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
     l, phi, theta = q
     # caluclates coordinates in inbedded space
     ax = plt.figure().add_subplot(projection='3d')
-    r = wrmhole.dneg_r(l, M, rho, a)
+    r = w.dneg_r(l, M, rho, a)
     X, Y = r*np.cos(phi), r*np.sin(phi)
     
     S_l = np.linspace(np.max(l), np.min(l), len(l))
@@ -243,7 +243,7 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
 
     #S_l = np.linspace(np.max(l), np.min(l), len(l))
     S_phi = np.linspace(0, 2*np.pi, len(l))
-    S_R, S_PHI = np.meshgrid(wrmhole.dneg_r(S_l, M, rho, a), S_phi) # radius is r(l)
+    S_R, S_PHI = np.meshgrid(w.dneg_r(S_l, M, rho, a), S_phi) # radius is r(l)
 
     # tile because symmetric for rotations, undependant on phi
     # Integral for Z direction like defined in the paper
@@ -260,3 +260,47 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
     #ax.set_zlim([-10,10])
     plt.savefig(os.path.join(path, name), dpi=150)
     plt.show()
+    
+def fullplothalf(ax, q_cart, l_cond, cl, ind, L):
+    for i in range(len(q_cart[0,0])):
+        for j in range(len(q_cart[0,0,0])):
+            ij = j + len(q_cart[0,0])*i
+            cl_i =cl[ind[ij]]
+            ax.plot(q_cart[0,:,i,j][l_cond[:,i,j]],
+                    q_cart[1,:,i,j][l_cond[:,i,j]],
+                    q_cart[2,:,i,j][l_cond[:,i,j]],
+                    color = cl_i)
+    ax.set_xlim([-L,L])
+    ax.set_ylim([-L,L])
+    ax.set_zlim([-L,L])
+
+def fullplot(q):
+    q = np.transpose(q, (1,0,2,3))
+    print(q[0][q[0] < 0].shape, q[0].shape)
+    Nz, Ny =  q[0,0].shape
+
+    # Samples a uniform portion of the rays for visualisation
+    Sample = q[:, :, 1::23, 1::23]
+    print(Sample[0][Sample[0] < 0].shape, Sample[0].shape)
+    cl, ind = ray_spread(len(Sample[0,0]), len(Sample[0,0,0]))
+    
+    # boolean array to check sgn l
+    l_cond = Sample[0] > 0
+    print(np.any(l_cond == False))
+    #print(Sample[0], Sample.shape, l_cond, l_cond.shape)
+    # inverse boolean condition
+    inv_l_cond = ~l_cond
+    # set l postive on the other side and change to cartesian coordinates
+    Sample[0][inv_l_cond] = -Sample[0][inv_l_cond]
+    q_cart = w.Sph_cart(Sample)
+    
+    L = 20
+    fig = plt.figure(figsize=plt.figaspect(0.5))
+    ax = fig.add_subplot(1, 2, 1, projection='3d')
+    fullplothalf(ax, q_cart, l_cond, cl, ind, L)
+    ax = fig.add_subplot(1, 2, 2, projection='3d')
+    fullplothalf(ax, q_cart, inv_l_cond, cl, ind, L)
+            
+    plt.tight_layout()
+    plt.show()   
+    
