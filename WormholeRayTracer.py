@@ -163,7 +163,7 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
-    q1 = np.transpose(np.tile(q0, (Nz, Ny,1)), (2,0,1)) + h*0.1
+    q1 = np.transpose(np.tile(q0, (Nz, Ny, 1)), (2,0,1)) + h*0.1
     q = q1
     Motion = np.empty((N,2,3,Nz,Ny), dtype=np.float32)
     Motion[0] = [p, q]
@@ -326,19 +326,19 @@ def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np
             #Reads out the data from the solution
             l_end       = sol.y[0][-1]
             phi_end     = sol.y[1][-1]
-            
+
             # Correcting for phi and theta values out of bounds
             while phi_end>2*np.pi:
                 phi_end = phi_end - 2*np.pi
             while phi_end<0:
                 phi_end = phi_end + 2*np.pi
-            
+
             theta_end   = sol.y[2][-1]
             while theta_end > np.pi:
                 theta_end = theta_end - np.pi
             while theta_end < 0:
                 theta_end = theta_end + np.pi
-                
+
             pl_end      = sol.y[3][-1]
             pphi_end    = sol.y[4][-1]
             ptheta_end  = sol.y[5][-1]
@@ -417,8 +417,6 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
     return np.transpose(np.array([endmom, endpos]), (4,0,3,1,2)) #output same shape as sympl. intgr.
 
 
-
-
 def rotate_ray(ray, Nz, Ny):
     """
     The function assumes a 'horizontal' ray for theta = pi/2 and phi: pi to 2pi
@@ -466,6 +464,76 @@ def rotate_ray(ray, Nz, Ny):
             while theta < 0:
                 theta = theta + np.pi
             loc = np.array([l, phi, theta])
+            pic[z][y] = loc
+
+    return pic
+
+
+def carth_polar(y, z):
+    """
+    Turns Carthesian coordinates to polar coordinates
+    """
+    return np.sqrt(y*y + z*z), np.arctan(z/y)
+
+
+def rotation_qubits(ray, Nz, Ny):
+    """
+    The function assumes a 'horizontal' ray for theta = pi/2 and phi: pi to 2pi.
+    Rotation is of the 'horizontal' ray is done with qubit method.
+    Inputs: - ray: the calculated 1D line
+            - Nz: vertical number of pixels
+            - Ny: horizontal number of pixels
+    Output: - pic: a 5D array with the pixels and their l, phi, theta
+    """
+
+    # Make list of point with position relative to center of the matrix
+    Mz = np.arange(-Nz/2, Nz/2, 1, dtype=int)
+    My = np.arange(-Ny/2, Ny/2, 1, dtype=int)
+
+    # Make the matrix to fill with the parameter values
+    pic = np.zeros((Nz, Ny, 3))
+
+    # Loop over every element (pixel) of the matrix (picture)
+    for height in Mz:
+        if height % (len(Mz) // 128) == 0:
+            print('#', end='')
+        for width in My:
+            # So we don't divide by zero in the transformation to polar coordinates
+            # when calculating alpha
+            if width == 0:
+                continue
+
+            # Find the coordinates in polar coordinates
+            radius, alpha = carth_polar(width, height)
+
+            r = int(round(radius))
+
+            # Carthesian coordinates of the gridpoint relative to upper left corner
+            z = int(-height + Nz/2) - 1
+            y = int(width + Ny/2) - 1
+
+            # Get the corresponding values from the calculated ray
+            l, phi, theta = ray[r]
+
+            #Flip screen for the left side
+            if width < 0:
+                phi = 2*np.pi - phi
+
+            # Initializing qubit for rotation
+            psi = np.array([np.cos(theta/2), np.exp(phi*1j)*np.sin(theta/2)])
+
+            # Rotationmatrix (rotation axis is x-axis)
+            R_x = np.array([np.array([np.cos(alpha/2), -1j*np.sin(alpha/2)]), np.array([-1j*np.sin(alpha/2), np.cos(alpha/2)])])
+            rot_psi = np.matmul(psi, R_x) # Matrix multiplication
+
+            # Find rotated phi and theta
+            z_0, z_1 = rot_psi
+
+            rot_theta = 2*np.arctan2(np.absolute(z_1),np.absolute(z_0))
+            rot_phi   = np.angle(z_1) - np.angle(z_0)
+
+            loc = np.array([l, rot_phi, rot_theta])
+
             pic[z][y] = loc
 
     return pic
@@ -539,7 +607,7 @@ def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400,
     momenta, position = sol
 
     print('Rotating ray...')
-    picture = rotate_ray(position, Nz, Ny)
+    picture = rotation_qubits(position, Nz, Ny)
     print('Ray rotated!')
     return picture
 
@@ -688,7 +756,7 @@ def Dmeg_symm_quat(q, q0, Nz, Ny, R):
     # get radius and angle pixel in 2D
     r_polar = np.linalg.norm(S_cT[1:], axis=0)
     alpha = np.arctan2(z,y)
-    
+
     # boolean array to check sgn l
     l_cond = q[0] > 0
     # print(l_cond.shape, q[0].shape )
@@ -697,12 +765,12 @@ def Dmeg_symm_quat(q, q0, Nz, Ny, R):
     # set l postive on the other side and change to cartesian coordinates
     q[0][inv_l_cond] = -q[0][inv_l_cond]
     q_cart = Sph_cart(q)
-    
+
     #set stationary point for our celestial sphere to camera (by chanching origin to camera)
     tlc = np.tile(l_cond, (3,1,1))
     q_cart[tlc] +=  -np.tile(q0_cart.reshape(3,1,1), tuple([1]+list(q_cart[0].shape)))[tlc]
 
-    #rotation axis: unit vector to camera 
+    #rotation axis: unit vector to camera
     Rot_axis = q0_cart/np.linalg.norm(q0_cart)
     #array that containts sign for the axis based on location celestial sphere
     sgn = np.empty(q_cart[0].shape)
@@ -720,7 +788,7 @@ def Dmeg_symm_quat(q, q0, Nz, Ny, R):
             k = np.argmin(np.abs(R - r_polar_k))
             # get angke pixel and flip based on location end point of the closest integrated value
             alpha_k = alpha[j,i]*sgn[k,0]
-            
+
             #create quaternion based on angle and rotation axis
             quat = np.concatenate((
                 np.cos(alpha_k/2).reshape(1),
