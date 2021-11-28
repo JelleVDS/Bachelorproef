@@ -8,7 +8,7 @@ import time
 gar = 'wormhole.jpg'
 sat = 'Saturn.jpg'
 
-wormh = raytracer.wormhole_with_symmetry(tijd = 2000, Nz=1024, Ny=2048, q0 = [96.75, np.pi, np.pi/2], Par=[0.43/1.42953, 8.6, 0.43])
+wormh = raytracer.wormhole_with_symmetry2(t_end = 2000, Nz=1024, Ny=2048, q0 = [96.75, np.pi, np.pi/2], Par=[0.43/1.42953, 8.6, 0.43])
 start = time.time()
 picture = pics.make_pic_quick(wormh, sat, gar)
 np.save('picture', picture)
