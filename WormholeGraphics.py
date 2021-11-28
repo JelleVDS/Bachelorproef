@@ -217,7 +217,7 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
     Col_l = np.concatenate((l.T, np.expand_dims(S_l, axis=0)), axis=0).T
     Col_Z = Dia.imb_f_int(Col_l, Par)
     Z = Col_Z[:,:-1]
-    S_Z0 = Col_Z[:,-1]
+    S_Z0 = Col_Z[:,-1] + np.max(Z)
 
     if np.any(reduce == False):
         for k in range(len(Sample[0,0,0])):
@@ -225,10 +225,9 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
                 gl = str(select[k])
             else:
                 gl = geo_label[k]
-            ax.plot(X[:,k], Y[:,k], Z[:,k], label= gl)
-            ax.plot(X[:,k], Y[:,k], Z[:,k], label= geo_label)
+            ax.plot(X[:,k], Y[:,k], Z[:,k], label = gl )
         ax.scatter(X[0,0] , Y[0,0], Z[0,0], label='camera', c = 'r')
-        ax.set_title("Geodesics corresponding to labeled pixel")
+        #ax.set_title("Path of a geodesic that lead to noise")
         ax.legend()
     else:
         for i in range(Nz_s):
@@ -254,5 +253,10 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
     #print(S_X.shape, S_Y.shape, S_Z.shape)
     ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
     plt.tight_layout()
+    # Hide grid lines
+    ax.grid(False)
+
+    ax.axis("off")
+    #ax.set_zlim([-10,10])
     plt.savefig(os.path.join(path, name), dpi=150)
     plt.show()
