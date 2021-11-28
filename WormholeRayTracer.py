@@ -354,6 +354,7 @@ def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np
         # print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
     return np.array(endmom), np.array(endpos)
 
+
 def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'BDF'):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
@@ -518,7 +519,7 @@ def DNeg_CM(p, q , Par):
 
 #def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
 
-def wormhole_with_symmetry(tijd=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43]):
+def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43]):
 
     """
     One function to calculate the ray and rotate it to a full picture with the
@@ -532,7 +533,7 @@ def wormhole_with_symmetry(tijd=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400, 
     """
 
     start = time.time()
-    sol = simulate_radius(tijd, Par, q0, Nz, Ny, methode = 'BDF')
+    sol = simulate_radius(t_end, Par, q0, Nz, Ny, methode = 'BDF')
     end = time.time()
     print('Tijdsduur = ' + str(end-start))
     momenta, position = sol
@@ -556,7 +557,7 @@ def simulate_radius2(t_end = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np.
 
     Output: - endmom: matrix with the momenta of the solution
             - endpos: matrix with the positions of the solution
-            S_RT[1]: initial location pixels on y-axis, thus radius of the pixel 
+            - S_RT[1]: initial location pixels on y-axis, thus radius of the pixel 
     """
     print('Initializing screen and calculating initial condition...')
 
@@ -568,7 +569,7 @@ def simulate_radius2(t_end = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np.
     S_R[:,:,1] = np.linspace(0,1,Ny).reshape(Ny,1)
     S_R[:,:,2] = 0
     S_RT = np.transpose(S_R, (2,0,1))
-    print(S_RT)
+    # print(S_RT)
     # Reading out values and determining parameters
     S_R_sph = cart_Sph(S_RT)
     p, Cst = inn_momenta(S_R, S_R_sph, Cst_DNeg, inn_mom_DNeg, Par)
@@ -617,7 +618,7 @@ def simulate_radius2(t_end = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np.
     return [np.array(endmom), np.array(endpos)], [S_RT[1]]
 
 
-def wormhole_with_symmetry2(t_end=100, Par=[0.43/1.42953, 1, 0.43], initialcond = [50, np.pi, np.pi/2], Nz=400, Ny=400):
+def wormhole_with_symmetry2(t_end=100, Par=[0.43/1.42953, 1, 0.43], q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400):
 
     """
     One function to calculate the ray and rotate it to a full picture with the
@@ -631,15 +632,16 @@ def wormhole_with_symmetry2(t_end=100, Par=[0.43/1.42953, 1, 0.43], initialcond 
     """
 
     start = time.time()
-    sol = simulate_radius2(t_end, Par, initialcond, Nz, Ny, methode = 'BDF')
+    sol = simulate_radius2(t_end, Par, q0, Nz, Ny, methode = 'BDF')
     end = time.time()
     print('Tijdsduur = ' + str(end-start))
+    print(f'The sol dimensions are {sol.shape}')
     p_q, D = sol
     momenta, position = p_q
     R = D[0]
 
     print('Rotating ray...')
-    picture = Dmeg_symm_quat(np.transpose(position,(2,0,1)), initialcond, Nz, Ny, R)
+    picture = Dmeg_symm_quat(np.transpose(position,(2,0,1)), q0, Nz, Ny, R)
     print('Ray rotated!')
     return picture
 
@@ -676,7 +678,7 @@ def Dmeg_symm_quat(q, q0, Nz, Ny, R):
     #       R: initial radius of integrated axis
     #output: 3D array with coordinates on the first axis 2D pixels on last two
 
-    print(q.shape)
+    # print(q.shape)
     q0_cart = Sph_cart(q0) #initial condition to cartesian coordinates
     #Set up screen
     S_c = screen_cart(Nz, Ny)
@@ -689,7 +691,7 @@ def Dmeg_symm_quat(q, q0, Nz, Ny, R):
     
     # boolean array to check sgn l
     l_cond = q[0] > 0
-    print(l_cond.shape, q[0].shape )
+    # print(l_cond.shape, q[0].shape )
     # inverse boolean condition
     inv_l_cond = ~l_cond
     # set l postive on the other side and change to cartesian coordinates
@@ -706,7 +708,7 @@ def Dmeg_symm_quat(q, q0, Nz, Ny, R):
     sgn = np.empty(q_cart[0].shape)
     sgn[l_cond] = 1
     sgn[inv_l_cond] = -1
-    print(sgn.shape)
+    # print(sgn.shape)
     #prepare arrays to be filled in
     q_Rotated = np.empty((3, Nz, Ny))
     lcr = np.zeros((Nz,Ny), dtype=bool)
@@ -728,7 +730,7 @@ def Dmeg_symm_quat(q, q0, Nz, Ny, R):
             q_Rotated[:,j,i] = np.dot(rotation_quat(quat), q_cart[:,k,0])
             # copy the boolean condidition for which celestial sphere over to array of the shape of the new screen.
             lcr[j,i] = l_cond[k,0]
-    print(q_Rotated.shape)
+    # print(q_Rotated.shape)
     # move origin back to camera on or celestial sphere
     lcr_inv = ~lcr
     tlcr = np.tile(lcr, (3,1,1))
