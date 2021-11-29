@@ -1,14 +1,21 @@
 import numpy as np
 
 def sum_subd(A):
-    # A 2D matrix such that the lengt of sides have int squares
-    Ny, Nz =  A.shape
-    Ny_s = int(np.sqrt(Ny))
-    Nz_s = int(np.sqrt(Nz))
-    B = np.zeros((Ny_s, Nz_s))
-    for i in range(Ny_s):
-        for j in range(Nz_s):
-            B[i,j] = np.sum(A[Ny_s*i:Ny_s*(i+1), Nz_s*j:Nz_s*(j+1)])
+    # A 2D/1D matrix such that the lengt of sides have int squares
+    Sh = A.shape
+    B = np.zeros(Sh)
+    if len(Sh) > 1:
+        Ny, Nz =  Sh
+        Ny_s = int(np.sqrt(Ny))
+        Nz_s = int(np.sqrt(Nz))
+        for i in range(Ny_s):
+            for j in range(Nz_s):
+                B[i,j] = np.sum(A[Ny_s*i:Ny_s*(i+1), Nz_s*j:Nz_s*(j+1)])
+    else:
+        N = Sh
+        N_s = int(np.sqrt(N))
+        for i in range(N_s):
+            B[i] = np.sum(A[N_s*i:N_s*(i+1)])
     return B
 
 def Sympl_DNeg(p, q, Cst, h, Par):
@@ -22,8 +29,10 @@ def Sympl_DNeg(p, q, Cst, h, Par):
     l, phi, theta = q
     b, B_2 = Cst
     
-    P = np.zeros(tuple([3,6]+list(p_l.shape)))
-    Q = np.zeros(tuple([3,6]+list(p_l.shape)))
+    Sh = tuple([3,6]+list(p_l.shape))
+    N = len(Sh)
+    P = np.zeros(Sh)
+    Q = np.zeros(Sh)
     P[:,0] = p
     Q[:,0] = q
     r = np.empty(l.shape)
@@ -104,8 +113,11 @@ def Sympl_DNeg(p, q, Cst, h, Par):
     
     Q[0,5] = 0.5*P[0,4]
     
-    P = np.sum(h**np.arange(6).reshape(6,1,1,1) * np.transpose(P, (1,0,2,3)), axis=0)
-    Q = np.sum(h**np.arange(6).reshape(6,1,1,1) * np.transpose(Q, (1,0,2,3)), axis=0)
+    S = np.arange(N)
+    S[0:2] = [1,0]
+    S = tuple(S)
+    P = np.sum(h**np.arange(6).reshape(tuple([6] + [1]*(N-1))) * np.transpose(P, S), axis=0)
+    Q = np.sum(h**np.arange(6).reshape(tuple([6] + [1]*(N-1))) * np.transpose(Q, S), axis=0)
     Q[1] = np.mod(Q[1], 2*np.pi)
     Q[2] = np.mod(Q[2], np.pi)
     return (P, Q, [H, b_C, B2_C]) 
