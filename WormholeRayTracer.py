@@ -1,5 +1,7 @@
 import numpy as np
 import time
+import WormholeGraphics as wg
+import Symplectic_DNeg as Smpl
 import scipy.integrate as integr
 from math import floor
 from tqdm.auto import tqdm
@@ -89,6 +91,13 @@ def cart_Sph(v):
 
     return v_sph
 
+def Sph_cart(psi):
+    r, phi, theta = psi
+    x = r*np.cos(phi)*np.sin(theta)
+    y = r*np.sin(phi)*np.sin(theta)
+    z = r*np.cos(theta)
+    return np.array([x,y,z])
+
 
 def inn_momenta(S_c, S_sph, Cst_f, inn_p_f, Par):
     # input: S_c: 3D matrix as an output of "screen_cart",
@@ -102,8 +111,9 @@ def inn_momenta(S_c, S_sph, Cst_f, inn_p_f, Par):
 
     r, phi, theta = S_sph
     M, rho, a = Par
-    S_n = S_c/r.reshape(len(S_c) ,len(S_c[0]), 1) # normalize direction light rays
-    S_n = np.transpose(S_n, (2,0,1)) # start array in terms of coordinates
+    Sh = S_sph[0].shape  
+    S_n = S_c/r.reshape(tuple(list(Sh) + [1])) # normalize direction light rays
+    S_n = np.transpose(S_n, tuple(np.roll(np.arange(len(Sh)+1), 1))) # start array in terms of coordinates
     p = inn_p_f(S_n, S_sph, Par) # calculate initial momenta, coords still on first row matrix
     Cst = Cst_f(p, S_sph) # calculate constant of motions
 
@@ -149,7 +159,7 @@ def inn_mom_DNeg(S_n, S_sph, Par):
     return p
 
 
-def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mode = 0, Grid_constr_3D = None):
+def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mode = 0, Grid_constr_3D = None, Rad = False):
     #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
     #       h: stepsize
     #       N amount of steps
@@ -158,14 +168,21 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     #       mode: disable data collection
     #output: motion: 5D matrix the elements being [p, q] p, q being 3D matrices
     #        output: 2D boolean array
+    
+    if Rad == False:
+        S_c = screen_cart(Nz, Ny, 1, 1)
+        S_cT = np.transpose(S_c, (2,0,1))
+    else:
+        end = int(np.ceil(np.sqrt(Ny**2+Nz**2)))
+        S_c = screen_cart(end, end)
+        S_c = S_c[ int(end/2) - 1, int(end/2 - 1):end, :]
+        S_cT = S_c.T
 
-    S_c = screen_cart(Nz, Ny, 1, 1)
-    S_cT = np.transpose(S_c, (2,0,1))
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
-    q1 = np.transpose(np.tile(q0, (Nz, Ny, 1)), (2,0,1)) + h*0.1
-    q = q1
-    Motion = np.empty((N,2,3,Nz,Ny), dtype=np.float32)
+    Sh = S_cT[0].shape
+    q = np.transpose(np.tile(q0, tuple(list(Sh) + [1])), tuple(np.roll(np.arange(len(Sh)+1), 1))) + h*0.1  
+    Motion = np.empty(tuple([N,2,3] + list(Sh)), dtype=np.float32)   
     Motion[0] = [p, q]
     CM_0 = np.array(DNeg_CM(p, q , Par))
     CM = np.empty(tuple([N]+list(CM_0.shape)), dtype=np.float32)
@@ -185,12 +202,14 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
             Grid = Grid_constr_3D(q, 11, 12, 0.016, Grid)
 
     if mode == 0:
-        CM[N-1] = DNeg_CM(p, q, Par)
-        Motion[N-1] = [p, q]
+        CM[-1] = DNeg_CM(p, q, Par)
+    Motion[-1] = [p, q]
     end = time.time()
 
     print(end - start)
     return Motion, Grid, CM
+
+    
 
 
 def diff_equations(t, variables):
@@ -483,7 +502,7 @@ def rotation_qubits(ray, Nz, Ny):
     Inputs: - ray: the calculated 1D line
             - Nz: vertical number of pixels
             - Ny: horizontal number of pixels
-    Output: - pic: a 5D array with the pixels and their l, phi, theta
+    Output: - pic: a 3D array with the pixels and their l, phi, theta
     """
 
     # Make list of point with position relative to center of the matrix
@@ -540,21 +559,23 @@ def rotation_qubits(ray, Nz, Ny):
 
 
 def sum_subd(A):
-    # input: A: 2D matrix such that the length of sides have int squares
-    #sums subdivisions of array
-
-    Nz, Ny =  A.shape
-
-    # subdivides by making blocks with the square of the original lenght as size
-    Ny_s = int(np.sqrt(Nz))
-    Nz_s = int(np.sqrt(Ny))
-    B = np.zeros((Nz_s, Ny_s))
-
-    for i in range(Nz_s):
-        for j in range(Ny_s):
-            B[i,j] = np.sum(A[Nz_s*i:Nz_s*(i+1), Ny_s*j:Ny_s*(j+1)])
-
+    # A 2D/1D matrix such that the lengt of sides have int squares
+    Sh = A.shape
+    B = np.zeros(Sh)
+    if len(Sh) > 1:
+        Ny, Nz =  Sh
+        Ny_s = int(np.sqrt(Ny))
+        Nz_s = int(np.sqrt(Nz))
+        for i in range(Ny_s):
+            for j in range(Nz_s):
+                B[i,j] = np.sum(A[Ny_s*i:Ny_s*(i+1), Nz_s*j:Nz_s*(j+1)])
+    else:
+        N = Sh
+        N_s = int(np.sqrt(N))
+        for i in range(N_s):
+            B[i] = np.sum(A[N_s*i:N_s*(i+1)])
     return B
+
 
 
 def DNeg_CM(p, q , Par):
@@ -587,7 +608,7 @@ def DNeg_CM(p, q , Par):
 
 #def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
 
-def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43]):
+def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43], h = 0.01, choice=True):
 
     """
     One function to calculate the ray and rotate it to a full picture with the
@@ -597,14 +618,23 @@ def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400,
             - Nz: vertical number of pixels
             - Ny: horizontal number of pixels
             - Par: wormhole parameters [M, rho, a]
+            - h: stepsize (for selfmade)
+            - choice: switch build in / selfmade
     Output: - picture: a 2D matrix containing the [l, phi, theta] value of the endpoint of each pixel
     """
 
     start = time.time()
-    sol = simulate_radius(t_end, Par, q0, Nz, Ny, methode = 'BDF')
+    if choice == True:
+        sol = simulate_radius(t_end, Par, q0, Nz, Ny, methode = 'BDF')
+        momenta, position = sol
+        print(position)
+    else:
+        sol = Simulate_DNeg(Smpl.Sympl_DNeg, Par, h, int(t_end/h), q0, Nz, Ny, '2D', 1, wg.Grid_constr_3D_Sph, True)
+        momenta, position = sol[0][-1]
+        position = position.T
+        print(position)
     end = time.time()
     print('Tijdsduur = ' + str(end-start))
-    momenta, position = sol
 
     print('Rotating ray...')
     picture = rotation_qubits(position, Nz, Ny)

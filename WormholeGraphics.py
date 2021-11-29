@@ -19,7 +19,7 @@ def Make_Pict_RB(q):
                 row.append([0, 0, 255])
         pict.append(row)
     return cv2.cvtColor(np.array(pict, np.float32), 1)
-""
+
 
 def Grid_constr_2D(q, N_a, R, w):
     # input: q: matrix with coordinates in configuration space on first row
