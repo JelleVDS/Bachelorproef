@@ -69,7 +69,7 @@ def screen_cart(Nz, Ny, L1 = 1, L2=2):
     for j in range(Nz):
         for i in range(Ny):
             # Placed at x = 1, (y,z) in My X Mz
-            arr.append([0.5, My[i],Mz[j]]) #(x, y, z)
+            arr.append([0.1, My[i],Mz[j]]) #(x, y, z)
 
     return np.array(arr).reshape(Nz, Ny, 3) #Flat array into matrix
 
