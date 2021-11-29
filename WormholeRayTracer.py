@@ -216,7 +216,7 @@ def diff_equations(t, variables):
     """
     Defines the differential equations of the wormhole metric
     """
-    l, phi, theta, p_l, p_phi, p_th, M, rho, a = variables
+    l, phi, theta, p_l, p_phi, p_th, M, rho, a, b, B = variables
     r = dneg_r(l, M, rho, a)
     rec_r = 1/r
     rec_r_2 = rec_r**2
@@ -225,8 +225,8 @@ def diff_equations(t, variables):
     cos1 = np.cos(theta)
     rec_sin2 = rec_sin1**2
     rec_sin3 = rec_sin1*rec_sin2
-    B = p_th**2 + p_phi**2 * rec_sin2
-    b = p_phi
+    #B = p_th**2 + p_phi**2 * rec_sin2
+    #b = p_phi
 
     # Using the hamiltonian equations of motion
     dl_dt       = p_l
@@ -236,7 +236,7 @@ def diff_equations(t, variables):
     dpl_dt      = B * (dneg_dr_dl(l, M, a)) * rec_r_3
     dpth_dt     = b ** 2 * cos1 * rec_sin3 * rec_r_2
 
-    diffeq = [-dl_dt, -dphi_dt, -dtheta_dt, -dpl_dt, np.zeros(dl_dt.shape), -dpth_dt, 0, 0, 0]
+    diffeq = [-dl_dt, -dphi_dt, -dtheta_dt, -dpl_dt, np.zeros(dl_dt.shape), -dpth_dt, 0, 0, 0, np.zeros(dl_dt.shape), np.zeros(dl_dt.shape)]
     return diffeq
 
 
@@ -272,7 +272,7 @@ def simulate_radius(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     teller1 = int(len(p1)/2) - 1
     #Loop over half of the screen
     for teller2 in tqdm(range(int(len(p1[0])/2 - 1), len(p1[0]))):
-        initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
+        initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a, Cst[0], Cst[1]])
         # Integrate to the solution
         sol = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=[-t_end])
         #Reads out the data from the solution
