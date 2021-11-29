@@ -627,12 +627,10 @@ def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400,
     if choice == True:
         sol = simulate_radius(t_end, Par, q0, Nz, Ny, methode = 'BDF')
         momenta, position = sol
-        print(position)
     else:
         sol = Simulate_DNeg(Smpl.Sympl_DNeg, Par, h, int(t_end/h), q0, Nz, Ny, '2D', 1, wg.Grid_constr_3D_Sph, True)
         momenta, position = sol[0][-1]
         position = position.T
-        print(position)
     end = time.time()
     print('Tijdsduur = ' + str(end-start))
 
