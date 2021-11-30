@@ -159,13 +159,13 @@ def inn_mom_DNeg(S_n, S_sph, Par):
     return p
 
 
-def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mode = 0, Grid_constr_3D = None, Rad = False):
+def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D', mode = False, Grid_constr_3D = None, Rad = False):
     #input: function that integrates(p(t), q(t)) to (p(t + h), q(t + h))
     #       h: stepsize
     #       N amount of steps
     #       Ni pixels
     #       q0: initial position
-    #       mode: disable data collection
+    #       mode: enables data collection
     #output: motion: 5D matrix the elements being [p, q] p, q being 3D matrices
     #        output: 2D boolean array
     
@@ -194,14 +194,14 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     # Integration
     for i in range(N-1):
         p, q , CM_i = integrator(p, q, Cst, h, Par)
-        if mode == 0:
+        if mode == True:
             Motion[i+1] = [p, q]
             CM[i+1] =  CM_i
         if Gr_D == '3D':
             # change parameters grid here
             Grid = Grid_constr_3D(q, 11, 12, 0.016, Grid)
 
-    if mode == 0:
+    if mode == True:
         CM[-1] = DNeg_CM(p, q, Par)
     Motion[-1] = [p, q]
     end = time.time()
@@ -240,7 +240,7 @@ def diff_equations(t, variables):
     return diffeq
 
 
-def simulate_radius(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
+def simulate_radius(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
@@ -264,10 +264,8 @@ def simulate_radius(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     S_sph = cart_Sph(S_cT)
 
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
-
     p1, p2, p3 = p
-    endpos = []
-    endmom = []
+    Motion = np.empty((len(p1[0]) - int(len(p1[0])/2 - 1), 6, N))
     #Define height of the ray
     teller1 = int(len(p1)/2) - 1
     #Loop over half of the screen
@@ -275,32 +273,13 @@ def simulate_radius(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     for teller2 in tqdm(range(int(len(p1[0])/2 - 1), len(p1[0]))):
         initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a, Cst[0,teller1,teller2], Cst[1,teller1,teller2]])
         # Integrate to the solution
-        sol = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=[-t_end])
-        #Reads out the data from the solution
-        l_end       = sol.y[0][-1]
-        phi_end     = sol.y[1][-1]
-        #Correcting for out of bound values
-        while phi_end>2*np.pi:
-            phi_end = phi_end - 2*np.pi
-        while phi_end<0:
-            phi_end = phi_end + 2*np.pi
-        # Correcting for out of bounds values
-
-        theta_end   = sol.y[2][-1]
-
-        while theta_end > np.pi:
-            theta_end = theta_end - np.pi
-        while theta_end < 0:
-            theta_end = theta_end + np.pi
-        pl_end      = sol.y[3][-1]
-        pphi_end    = sol.y[4][-1]
-        ptheta_end  = sol.y[5][-1]
-        # Adding solution to the list
-        endpos.append(np.array([l_end, phi_end, theta_end]))
-        endmom.append(np.array([pl_end, pphi_end, ptheta_end]))
-    np.savetxt('eindposities2.txt', endpos)
+        i = teller2 - int(len(p1[0])/2 - 1)
+        Motion[i] = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=np.linspace(0, -t_end, N)).y[:6]
+    Motion[:, 1] = np.mod(Motion[:, 1], 2*np.pi)
+    Motion[:, 2] = np.mod(Motion[:, 2], np.pi)
+    np.savetxt('eindposities2.txt', Motion[:, :3, -1])
     print('radius saved!')
-    return np.array(endmom), np.array(endpos)
+    return Motion[:, 3:], Motion[:, :3]
 
 
 def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np.pi, np.pi/2], Nz = 14**2, Ny = 14**2, methode = 'BDF'):
@@ -400,42 +379,23 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
     p1, p2, p3 = p
     q1, q2, q3 = q0
-    endpos = []
-    endmom = []
+    Motion = np.empty((Nz,Ny,6,N))
 
     # Looping over all momenta
-    for teller1 in range(0, len(p1)):
-        row_pos = []
-        row_mom = []
+    for j in range(0, len(p1)):
         start_it = time.time()
-        for teller2 in range(0, len(p1[0])):
-
+        for i in range(0, len(p1[0])):
             start_it = time.time()
-            initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
+            initial_values = np.array([q1, q2, q3, p1[j][i], p2[j][i], p3[j][i], M, rho, a])
             # Integrates to the solution
-            sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=np.linspace(t_end, 0, N))
-            #Reads out the data from the solution
-            l_end       = sol.y[0]
-            phi_end     = sol.y[1]
-            # Correcting for phi and theta values out of bounds
-            phi_end = np.mod(phi_end, 2*np.pi)
-            theta_end   = sol.y[2]
-            theta_end = np.mod(theta_end, np.pi)
-            pl_end      = sol.y[3]
-            pphi_end    = sol.y[4]
-            ptheta_end  = sol.y[5]
-            # adds local solution to row
-            row_pos.append(np.array([l_end, phi_end, theta_end]))
-            row_mom.append(np.array([pl_end, pphi_end, ptheta_end]))
+            Motion[j,i] = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=np.linspace(t_end, 0, N)).y[:6]
 
-        # adds row to matrix
-        endpos.append(np.array(row_pos))
-        endmom.append(np.array(row_mom))
         end_it = time.time()
         duration = end_it - start_it
-        print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
-    return np.transpose(np.array([endmom, endpos]), (4,0,3,1,2)) #output same shape as sympl. intgr.
-
+        print('Iteration ' + str((j, i)) + ' completed in ' + str(duration) + 's.')
+    Motion[:,:,1] = np.mod(Motion[:,:,1], 2*np.pi)
+    Motion[:,:,2] = np.mod(Motion[:,:,2], np.pi)
+    return np.transpose(np.array([Motion[:,:,0:3], Motion[:,:,3:]]), (4,0,3,1,2)) #output same shape as sympl. intgr.
 
 def rotate_ray(ray, Nz, Ny):
     """
@@ -609,7 +569,7 @@ def DNeg_CM(p, q , Par):
 
 #def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
 
-def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43], h = 0.01, choice=True):
+def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43], h = 0.01, choice=True, mode=False):
 
     """
     One function to calculate the ray and rotate it to a full picture with the
@@ -621,16 +581,22 @@ def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400,
             - Par: wormhole parameters [M, rho, a]
             - h: stepsize (for selfmade)
             - choice: switch build in / selfmade
+            - mode enables data collection (Energy)
     Output: - picture: a 2D matrix containing the [l, phi, theta] value of the endpoint of each pixel
     """
 
     start = time.time()
     if choice == True:
-        sol = simulate_radius(t_end, Par, q0, Nz, Ny, methode = 'BDF')
+        sol = simulate_radius(t_end, Par, q0, int(t_end/h), Nz, Ny, methode = 'BDF')
         momenta, position = sol
+        if mode == True:
+            CM = np.array([DNeg_CM(momenta[:,:,i].T, position[:,:,i].T , Par) for i in range(len(momenta[0,0]))])
+        position = position[:,:,-1]
     else:
-        sol = Simulate_DNeg(Smpl.Sympl_DNeg, Par, h, int(t_end/h), q0, Nz, Ny, '2D', 1, wg.Grid_constr_3D_Sph, True)
+        sol = Simulate_DNeg(Smpl.Sympl_DNeg, Par, h, int(t_end/h), q0, Nz, Ny, '2D', mode, wg.Grid_constr_3D_Sph, True)
         momenta, position = sol[0][-1]
+        if mode == True:
+            CM = sol[2]
         position = position.T
     end = time.time()
     print('Tijdsduur = ' + str(end-start))
@@ -638,4 +604,7 @@ def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400,
     print('Rotating ray...')
     picture = rotation_qubits(position, Nz, Ny)
     print('Ray rotated!')
-    return picture
+    if mode == True:
+        return picture, CM
+    else:
+        return picture

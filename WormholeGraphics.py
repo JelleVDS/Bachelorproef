@@ -137,25 +137,34 @@ def Make_Pict_RGBP(q, Grid):
 def plot_CM(CM, Label, name, path):
     #input: 3D array containing energy of each ray over time, advancement in time on first row
     # plot the constants of motion over the partition of the rays
-
-    Ny, Nz =  CM[0,0].shape
-    CM = np.transpose(CM, (1,0,2,3))
+  
+    Sh = CM[0,0].shape
+    if len(Sh) > 1:
+        Ny, Nz = Sh
+        cl, ind = ray_spread(Nz, Ny)
+        CM = np.transpose(CM, (1,0,2,3))
+    else:
+        N = Sh[0]
+        cl = plt.cm.viridis(np.arange(N)/N)
+        CM = np.transpose(CM, (1,0,2))
     N_C = len(CM)
-    cl, ind = ray_spread(Nz, Ny)
-
     fig, ax = plt.subplots(1, N_C)
     x = np.arange(len(CM[0]))
     for k in range(N_C):
-        for i in range(Nz):
-            for j in range(Ny):
-                ij = i + Nz*j
-                cl_i =cl[ind[ij]]
-                ax[k].plot(x, CM[k,:,i,j], color=cl_i)
-        ax[k].set_yscale("log")
+        if len(Sh) > 1:
+            for i in range(Nz):
+                for j in range(Ny):
+                    ij = i + Nz*j
+                    cl_i =cl[ind[ij]]
+                    ax[k].plot(x, CM[k,:,i,j], color=cl_i)
+        else:
+            for i in range(N):
+                ax[k].plot(x, CM[k,:,i], color=cl[i])        
+        ax[k].set_yscale("symlog")
         #ax[k].set_title(Label[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
         ax[k].set_xlabel("number of timesteps taken")
         ax[k].set_ylabel(Label[k])
-        ax[k].set_title(Label[k]+" summed over a subdivision of rays")
+        ax[k].set_title("sum subdivision rays")
     plt.tight_layout()
     plt.savefig(os.path.join(path, name), dpi=150)
     plt.show()
