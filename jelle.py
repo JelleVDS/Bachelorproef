@@ -5,8 +5,8 @@ import cv2
 import numpy as np
 import time
 
-gar = 'wormhole2.jpg'
-sat = 'Saturn.jpg'
+gar = 'four.png'
+sat = 'negfour.png'
 
 wormh = raytracer.wormhole_with_symmetry(t_end = 10000 ,q0 = [100, np.pi, np.pi/2], Nz=1000, Ny=2000, Par=[0.43/1.42953, 8.3, 0.43])
 start = time.time()

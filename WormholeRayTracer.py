@@ -111,7 +111,7 @@ def inn_momenta(S_c, S_sph, Cst_f, inn_p_f, Par):
 
     r, phi, theta = S_sph
     M, rho, a = Par
-    Sh = S_sph[0].shape  
+    Sh = S_sph[0].shape
     S_n = S_c/r.reshape(tuple(list(Sh) + [1])) # normalize direction light rays
     S_n = np.transpose(S_n, tuple(np.roll(np.arange(len(Sh)+1), 1))) # start array in terms of coordinates
     p = inn_p_f(S_n, S_sph, Par) # calculate initial momenta, coords still on first row matrix
@@ -168,7 +168,7 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     #       mode: enables data collection
     #output: motion: 5D matrix the elements being [p, q] p, q being 3D matrices
     #        output: 2D boolean array
-    
+
     if Rad == False:
         S_c = screen_cart(Nz, Ny, 1, 1)
         S_cT = np.transpose(S_c, (2,0,1))
@@ -181,8 +181,8 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     S_sph = cart_Sph(S_cT)
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
     Sh = S_cT[0].shape
-    q = np.transpose(np.tile(q0, tuple(list(Sh) + [1])), tuple(np.roll(np.arange(len(Sh)+1), 1))) + h*0.1  
-    Motion = np.empty(tuple([N,2,3] + list(Sh)), dtype=np.float32)   
+    q = np.transpose(np.tile(q0, tuple(list(Sh) + [1])), tuple(np.roll(np.arange(len(Sh)+1), 1))) + h*0.1
+    Motion = np.empty(tuple([N,2,3] + list(Sh)), dtype=np.float32)
     Motion[0] = [p, q]
     CM_0 = np.array(DNeg_CM(p, q , Par))
     CM = np.empty(tuple([N]+list(CM_0.shape)), dtype=np.float32)
@@ -209,7 +209,7 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     print(end - start)
     return Motion, Grid, CM
 
-    
+
 
 
 def diff_equations(t, variables):
@@ -240,7 +240,8 @@ def diff_equations(t, variables):
     return diffeq
 
 
-def simulate_radius(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
+
+def simulate_radius(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'BDF'):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
@@ -274,9 +275,9 @@ def simulate_radius(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'RK45')
         initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a, Cst[0,teller1,teller2], Cst[1,teller1,teller2]])
         # Integrate to the solution
         i = teller2 - int(len(p1[0])/2 - 1)
-        Motion[i] = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=np.linspace(0, -t_end, N)).y[:6]
-    Motion[:, 1] = np.mod(Motion[:, 1], 2*np.pi)
-    Motion[:, 2] = np.mod(Motion[:, 2], np.pi)
+        Motion[i] = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=np.linspace(0, -t_end, N), rtol=10**(-10), atol=10**(-20)).y[:6]
+    Motion[:,1] = np.mod(Motion[:,1], 2*np.pi)
+    Motion[:,2] = np.mod(Motion[:,2], np.pi)
     np.savetxt('eindposities2.txt', Motion[:, :3, -1])
     print('radius saved!')
     return Motion[:, 3:], Motion[:, :3]
@@ -454,7 +455,8 @@ def carth_polar(y, z):
     """
     Turns Carthesian coordinates to polar coordinates
     """
-    return np.sqrt(y*y + z*z), np.arctan(z/y)
+
+    return np.sqrt(y*y + z*z), np.arctan2(z,y)
 
 
 def rotation_qubits(ray, Nz, Ny):
@@ -478,10 +480,6 @@ def rotation_qubits(ray, Nz, Ny):
     for i in tqdm(range(0, len(Mz))):
         height = Mz[i]
         for width in My:
-            # So we don't divide by zero in the transformation to polar coordinates
-            # when calculating alpha
-            if width == 0:
-                continue
 
             # Find the coordinates in polar coordinates
             radius, alpha = carth_polar(width, height)
@@ -494,10 +492,6 @@ def rotation_qubits(ray, Nz, Ny):
 
             # Get the corresponding values from the calculated ray
             l, phi, theta = ray[r]
-
-            #Flip screen for the left side
-            if width < 0:
-                phi = 2*np.pi - phi
 
             # Initializing qubit for rotation
             psi = np.array([np.cos(theta/2), np.exp(phi*1j)*np.sin(theta/2)])
@@ -567,7 +561,6 @@ def DNeg_CM(p, q , Par):
     return [H, b_C, B2_C]
 
 
-#def wormhole_with_symmetry(steps=3000, initialcond = [70, np.pi, np.pi/2], Nz=200, Ny=400, Par=[0.43/1.42953, 8.6, 43]):
 
 def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43], h = 0.01, choice=True, mode=False):
 
