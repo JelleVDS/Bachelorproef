@@ -71,7 +71,7 @@ def screen_cart(Nz, Ny, L1 = 1, L2=2):
     for j in range(Nz):
         for i in range(Ny):
             # Placed at x = 1, (y,z) in My X Mz
-            arr.append([0.1, My[i],Mz[j]]) #(x, y, z)
+            arr.append([0.25, My[i],Mz[j]]) #(x, y, z)
 
     return np.array(arr).reshape(Nz, Ny, 3) #Flat array into matrix
 
@@ -236,7 +236,7 @@ def diff_equations(t, variables):
     dpl_dt      = B * (dneg_dr_dl(l, M, a)) * rec_r_3
     dpth_dt     = b ** 2 * cos1 * rec_sin3 * rec_r_2
 
-    diffeq = [-dl_dt, -dphi_dt, -dtheta_dt, -dpl_dt, np.zeros(dl_dt.shape), -dpth_dt, 0, 0, 0, np.zeros(dl_dt.shape), np.zeros(dl_dt.shape)]
+    diffeq = [-dl_dt, -dphi_dt, -dtheta_dt, -dpl_dt, np.zeros(dl_dt.shape), -dpth_dt, 0, 0, 0, 0, 0]
     return diffeq
 
 
@@ -273,7 +273,7 @@ def simulate_radius(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     #Loop over half of the screen
     print('Integrating ray...')
     for teller2 in tqdm(range(int(len(p1[0])/2 - 1), len(p1[0]))):
-        initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a, Cst[0], Cst[1]])
+        initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a, Cst[0,teller1,teller2], Cst[1,teller1,teller2]])
         # Integrate to the solution
         sol = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=[-t_end])
         #Reads out the data from the solution
