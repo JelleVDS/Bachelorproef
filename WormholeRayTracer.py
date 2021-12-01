@@ -192,7 +192,7 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     start = time.time()
 
     # Integration
-    for i in range(N-1):
+    for i in tqdm(range(N-1)):
         p, q , CM_i = integrator(p, q, Cst, h, Par)
         if mode == 0:
             Motion[i+1] = [p, q]
@@ -275,7 +275,7 @@ def simulate_radius(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'BDF'):
     for teller2 in tqdm(range(int(len(p1[0])/2 - 1), len(p1[0]))):
         initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a, Cst[0,teller1,teller2], Cst[1,teller1,teller2]])
         # Integrate to the solution
-        sol = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=[-t_end],rtol=10**(-10), atol=10**(-20))
+        sol = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=[-t_end],rtol=10**(-10), atol=10**(-30))
         #Reads out the data from the solution
         l_end       = sol.y[0][-1]
         phi_end     = sol.y[1][-1]
@@ -298,7 +298,7 @@ def simulate_radius(t_end, Par, q0, Nz = 14**2, Ny = 14**2, methode = 'BDF'):
         # Adding solution to the list
         endpos.append(np.array([l_end, phi_end, theta_end]))
         endmom.append(np.array([pl_end, pphi_end, ptheta_end]))
-    np.savetxt('eindposities2.txt', endpos)
+    # np.savetxt('eindposities2.txt', endpos)
     print('radius saved!')
     return np.array(endmom), np.array(endpos)
 
@@ -618,9 +618,10 @@ def wormhole_with_symmetry(t_end=2000, q0 = [96.75, np.pi, np.pi/2], Nz=1024, Ny
 
     start = time.time()
     if choice == True:
-        sol = simulate_radius(t_end, Par, q0, Nz, Ny, methode = 'BDF')
+        sol = simulate_radius(t_end, Par, q0, Nz, Ny, methode = 'RK23')
         momenta, position = sol
     else:
+        print('Ok!')
         sol = Simulate_DNeg(Smpl.Sympl_DNeg, Par, h, int(t_end/h), q0, Nz, Ny, '2D', 1, wg.Grid_constr_3D_Sph, True)
         momenta, position = sol[0][-1]
         position = position.T
