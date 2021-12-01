@@ -225,8 +225,8 @@ def diff_equations(t, variables):
     cos1 = np.cos(theta)
     rec_sin2 = rec_sin1**2
     rec_sin3 = rec_sin1*rec_sin2
-    #B = p_th**2 + p_phi**2 * rec_sin2
-    #b = p_phi
+    B = p_th**2 + p_phi**2 * rec_sin2
+    b = p_phi
 
     # Using the hamiltonian equations of motion
     dl_dt       = p_l
@@ -241,7 +241,7 @@ def diff_equations(t, variables):
 
 
 
-def simulate_radius(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'BDF'):
+def simulate_radius(t_end, Par, q0, h, Nz = 14**2, Ny = 14**2, methode = 'BDF', mode = False):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
@@ -251,6 +251,7 @@ def simulate_radius(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'BDF'):
             - Nz: number of vertical pixels
             - Ny: number of horizontal pixels
             - methode: method used for solving the ivp (standerd runge-kutta of fourth order)
+            - h: absolute tolerance / min stepsize
 
     Output: - endmom: matrix with the momenta of the solution
             - endpos: matrix with the positions of the solution
@@ -266,7 +267,13 @@ def simulate_radius(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'BDF'):
 
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
     p1, p2, p3 = p
-    Motion = np.empty((len(p1[0]) - int(len(p1[0])/2 - 1), 6, N))
+    if mode == True:
+        T = int(t_end/np.sqrt(h))
+        data = np.linspace(0, -t_end, T)
+    else:
+        T = 1
+        data = [-t_end]
+    Motion = np.empty((len(p1[0]) - int(len(p1[0])/2 - 1), 6, T))
     #Define height of the ray
     teller1 = int(len(p1)/2) - 1
     #Loop over half of the screen
@@ -275,7 +282,7 @@ def simulate_radius(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'BDF'):
         initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a, Cst[0,teller1,teller2], Cst[1,teller1,teller2]])
         # Integrate to the solution
         i = teller2 - int(len(p1[0])/2 - 1)
-        Motion[i] = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=np.linspace(0, -t_end, N), rtol=10**(-10), atol=10**(-20)).y[:6]
+        Motion[i] = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=data, rtol=h**(1/2), atol=h).y[:6]
     Motion[:,1] = np.mod(Motion[:,1], 2*np.pi)
     Motion[:,2] = np.mod(Motion[:,2], np.pi)
     np.savetxt('eindposities2.txt', Motion[:, :3, -1])
@@ -580,9 +587,10 @@ def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400,
 
     start = time.time()
     if choice == True:
-        sol = simulate_radius(t_end, Par, q0, int(t_end/h), Nz, Ny, methode = 'BDF')
+        sol = simulate_radius(t_end, Par, q0, h, Nz, Ny, methode = 'BDF', mode = mode)
         momenta, position = sol
         if mode == True:
+            print("calculating constants of motion")
             CM = np.array([DNeg_CM(momenta[:,:,i].T, position[:,:,i].T , Par) for i in range(len(momenta[0,0]))])
         position = position[:,:,-1]
     else:
