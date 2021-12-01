@@ -192,7 +192,7 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     start = time.time()
 
     # Integration
-    for i in range(N-1):
+    for i in tqdm(range(N-1)):
         p, q , CM_i = integrator(p, q, Cst, h, Par)
         if mode == True:
             Motion[i+1] = [p, q]
@@ -285,7 +285,6 @@ def simulate_radius(t_end, Par, q0, h, Nz = 14**2, Ny = 14**2, methode = 'BDF', 
         Motion[i] = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=data, rtol=h**(1/2), atol=h).y[:6]
     Motion[:,1] = np.mod(Motion[:,1], 2*np.pi)
     Motion[:,2] = np.mod(Motion[:,2], np.pi)
-    np.savetxt('eindposities2.txt', Motion[:, :3, -1])
     print('radius saved!')
     return Motion[:, 3:], Motion[:, :3]
 
