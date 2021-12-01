@@ -326,7 +326,7 @@ def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np
         for teller2 in range(0, len(p1[0])):
 
             start_it = time.time()
-            initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a])
+            initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a, Cst[0,teller1,teller2], Cst[1,teller1,teller2]])
             # Integrates to the solution
             sol = integr.solve_ivp(diff_equations, [tijd, 0], initial_values, method = methode, t_eval=[0])
             #Reads out the data from the solution
@@ -389,17 +389,12 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
     Motion = np.empty((Nz,Ny,6,N))
 
     # Looping over all momenta
-    for j in range(0, len(p1)):
-        start_it = time.time()
+    for j in tqdm(range(0, len(p1))):
+        
         for i in range(0, len(p1[0])):
-            start_it = time.time()
-            initial_values = np.array([q1, q2, q3, p1[j][i], p2[j][i], p3[j][i], M, rho, a])
+            initial_values = np.array([q1, q2, q3, p1[j][i], p2[j][i], p3[j][i], M, rho, a, Cst[0,j,i], Cst[1,j,i]])
             # Integrates to the solution
             Motion[j,i] = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=np.linspace(t_end, 0, N)).y[:6]
-
-        end_it = time.time()
-        duration = end_it - start_it
-        print('Iteration ' + str((j, i)) + ' completed in ' + str(duration) + 's.')
     Motion[:,:,1] = np.mod(Motion[:,:,1], 2*np.pi)
     Motion[:,:,2] = np.mod(Motion[:,:,2], np.pi)
     return np.transpose(np.array([Motion[:,:,0:3], Motion[:,:,3:]]), (4,0,3,1,2)) #output same shape as sympl. intgr.
@@ -586,7 +581,7 @@ def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400,
 
     start = time.time()
     if choice == True:
-        sol = simulate_radius(t_end, Par, q0, h, Nz, Ny, methode = 'BDF', mode = mode)
+        sol = simulate_radius(t_end, Par, q0, h, Nz, Ny, methode = 'RK45', mode = mode)
         momenta, position = sol
         if mode == True:
             print("calculating constants of motion")
