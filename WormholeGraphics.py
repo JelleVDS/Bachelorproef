@@ -283,13 +283,13 @@ def fullplothalf(ax, q_cart, l_cond, cl, ind, L):
     ax.set_ylim([-L,L])
     ax.set_zlim([-L,L])
 
-def fullplot(q):
+def fullplot(q, a):
     q = np.transpose(q, (1,0,2,3))
     print(q[0][q[0] < 0].shape, q[0].shape)
     Nz, Ny =  q[0,0].shape
 
     # Samples a uniform portion of the rays for visualisation
-    Sample = q[:, :, 1::23, 1::23]
+    Sample = q[:, :, 1::a, 1::a]
     print(Sample[0][Sample[0] < 0].shape, Sample[0].shape)
     cl, ind = ray_spread(len(Sample[0,0]), len(Sample[0,0,0]))
     
