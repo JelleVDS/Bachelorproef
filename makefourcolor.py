@@ -16,31 +16,39 @@ def diagonal_carth(horizonal, vertical, L):
              carthesian coordinates as tuples
     """
     N = int(math.ceil(np.sqrt(horizontal**2 + vertical**2)))
-def make4color(height=400, width=400):
-    pic = []
+def make4color(height=1024, width=2048):
+    pic = np.empty([height, width, 3])
     for row in range(height):
-        rij = []
         for column in range(width):
-            if row <= height/2 and row%(height/10) != 0:
-                if column < width/2 and column%(height/10)!=0 :
-                    rij.append(np.array([255, 0, 0]))
-                if column >= width/2 and column%(height/10)!=0:
-                    rij.append(np.array([123, 123, 0]))
-            if row > height/2 and row%(height/10) != 0:
-                if column < width/2 and column%(height/10)!=0:
-                    rij.append(np.array([0, 255, 0]))
-                if column >= width/2 and column%(height/10)!=0:
-                    rij.append(np.array([0, 0, 255]))
-            if column%(height/10)==0:
-                rij.append([0,0,0])
-        if row%(height/10) == 0:
-            u = [0,0,0]
-            rij = [u]*width
-        pic.append(np.array(rij))
+            loch = row + height/2
+            locp = column
+            if row <= height/2 :
+                if column < width/2:
+                    pic[row][column] = np.array([0, 255, 255])
+                if column >= width/2:
+                    pic[row][column] = np.array([123, 123, 255])
+            if row > height/2:
+                locp = column + width/2
+                if column < width/2:
+                    pic[row][column] = np.array([255, 0, 255])
+                if column >= width/2:
+                    pic[row][column] = np.array([255, 255, 0])
+            theta = loch * np.pi / height
+            phi   = locp * 2 * np.pi / width
+            while phi>2*np.pi:
+                phi = phi - 2*np.pi
+            while theta > np.pi:
+                theta = theta - np.pi
+
+            x = np.cos(theta) * np.cos(phi)
+            y = np.cos(theta) * np.sin(phi)
+            z = np.sin(theta)
+            if x%0.2 < 0.005 or y%0.2 < 0.005 or z%0.2 < 0.005:
+                pic[row][column] = np.array([0, 0, 0])
     return np.array(pic)
 
 pict = make4color()
 print(pict.shape)
 img = cv2.cvtColor(np.array(pict, np.float32), 1)
 path = os.getcwd()
-cv2.imwrite(os.path.join(path, 'four400.png'), img)
+cv2.imwrite(os.path.join(path, 'testNegColorGrid.png'), img)
