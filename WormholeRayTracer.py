@@ -390,7 +390,7 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
     endmom = []
 
     # Looping over all momenta
-    for teller1 in range(0, len(p1)):
+    for teller1 in tqdm(range(0, len(p1))):
         row_pos = []
         row_mom = []
         start_it = time.time()
@@ -419,7 +419,7 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
         endmom.append(np.array(row_mom))
         end_it = time.time()
         duration = end_it - start_it
-        print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
+        # print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
     return np.transpose(np.array([endmom, endpos]), (4,0,3,1,2)) #output same shape as sympl. intgr.
 
 

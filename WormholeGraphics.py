@@ -260,13 +260,13 @@ def gdsc(Motion, Par, name, path, geo_label = None, select = None, reduce = Fals
     
     S_X, S_Y = S_R*np.cos(S_PHI), S_R*np.sin(S_PHI)
     #print(S_X.shape, S_Y.shape, S_Z.shape)
-    ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.YlGnBu_r, alpha=0.5)
+    ax.plot_surface(S_X, S_Y, S_Z, cmap=plt.cm.coolwarm, alpha=0.5)
     plt.tight_layout()
     # Hide grid lines
     ax.grid(False)
 
     ax.axis("off")
-    #ax.set_zlim([-10,10])
+    # ax.set_zlim([-15,15])
     plt.savefig(os.path.join(path, name), dpi=150)
     plt.show()
     
