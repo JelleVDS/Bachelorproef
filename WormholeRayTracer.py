@@ -587,7 +587,7 @@ def DNeg_CM(p, q , Par):
 
 
 
-def wormhole_with_symmetry(t_end=200, q0 = [8.75, np.pi, np.pi/2], Nz=1024, Ny=2048, Par=[0.05/1.42953, 1, 2.5], h = 10**-10, choice=True, mode=False):
+def wormhole_with_symmetry(t_end=200, q0 = [7.25, np.pi, np.pi/2], Nz=1024, Ny=2048, Par=[0.05/1.42953, 1, 1], h = 10**-10, choice=True, mode=False):
 
     """
     One function to calculate the ray and rotate it to a full picture with the
