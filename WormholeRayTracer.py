@@ -289,7 +289,7 @@ def simulate_radius(t_end, Par, q0, h, Nz = 14**2, Ny = 14**2, methode = 'BDF', 
     return Motion[:, 3:], Motion[:, :3]
 
 
-def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np.pi, np.pi/2], Nz = 14**2, Ny = 14**2, methode = 'BDF'):
+def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np.pi, np.pi/2], Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
@@ -587,7 +587,7 @@ def DNeg_CM(p, q , Par):
 
 
 
-def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43], h = 0.01, choice=True, mode=False):
+def wormhole_with_symmetry(t_end=200, q0 = [8.75, np.pi, np.pi/2], Nz=1024, Ny=2048, Par=[0.05/1.42953, 1, 2.5], h = 10**-10, choice=True, mode=False):
 
     """
     One function to calculate the ray and rotate it to a full picture with the
