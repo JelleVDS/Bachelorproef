@@ -237,8 +237,8 @@ def diff_equations(t, variables):
     cos1 = np.cos(theta)
     rec_sin2 = rec_sin1**2
     rec_sin3 = rec_sin1*rec_sin2
-    # B = p_th**2 + p_phi**2 * rec_sin2
-    # b = p_phi
+    B = p_th**2 + p_phi**2 * rec_sin2
+    b = p_phi
 
     # Using the hamiltonian equations of motion
     dl_dt       = p_l
