@@ -373,7 +373,7 @@ def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np
     return np.array(endmom), np.array(endpos)
 
 
-def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'BDF'):
+def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'RK45', mode = False):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
@@ -383,6 +383,7 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
             - Nz: number of vertical pixels
             - Ny: number of horizontal pixels
             - methode: method used for solving the ivp (standerd runge-kutta of fourth order)
+            - mode enables data collection (Energy)
 
     Output: - Motion: Usual 5D matrix
     """
@@ -432,7 +433,13 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
         end_it = time.time()
         duration = end_it - start_it
         # print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
-    return np.transpose(np.array([endmom, endpos]), (4,0,3,1,2)) #output same shape as sympl. intgr.
+    Motion = np.transpose(np.array([endmom, endpos]), (4,0,3,1,2)) #output same shape as sympl. intgr.
+    if mode == False:
+        return Motion
+    else:
+        print("calculating constants of motion")
+        CM = np.array([DNeg_CM(Motion[k,0], Motion[k,1], Par) for k in range(len(Motion))])
+        return Motion , CM
 
 
 def rotate_ray(ray, Nz, Ny):
