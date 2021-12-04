@@ -4,27 +4,19 @@ from numba import njit
 def sum_subd(A):
     # A 2D/1D matrix such that the lengt of sides have int squares
     Sh = A.shape
-    B = np.zeros(Sh)
     if len(Sh) > 1:
-        Ny, Nz =  np.array(Sh)
-        Ny_s = np.sqrt(Ny).astype(np.int64)
-        Nz_s = np.sqrt(Nz).astype(np.int64)
-        return subd_calc_2D(Ny_s, Nz_s, A, B)
-    else:
-        N = np.array(Sh)
-        N_s = np.sqrt(N).astype(np.int64)
-        return subd_calc_1D(N_s, A, B)
-
-@njit
-def subd_calc_2D(Ny_s, Nz_s, A, B):
-    for i in range(Ny_s):
+        Ny, Nz =  Sh
+        Ny_s = int(np.sqrt(Ny))
+        Nz_s = int(np.sqrt(Nz))
+        B = np.zeros((Ny_s, Nz_s))
+        for i in range(Ny_s):
             for j in range(Nz_s):
                 B[i,j] = np.sum(A[Ny_s*i:Ny_s*(i+1), Nz_s*j:Nz_s*(j+1)])
-    return B
-
-@njit
-def subd_calc_1D(N_s, A, B):
-    for i in range(N_s):
+    else:
+        N = Sh
+        N_s = int(np.sqrt(N))
+        B = np.zeros(N_s)
+        for i in range(N_s):
             B[i] = np.sum(A[N_s*i:N_s*(i+1)])
     return B
     

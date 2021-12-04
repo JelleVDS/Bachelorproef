@@ -212,7 +212,7 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
             CM[i+1] =  CM_i
         if Gr_D == '3D':
             # change parameters grid here
-            Grid = Grid_constr_3D(q, 11, 12, 0.016, Grid)
+            Grid = Grid_constr_3D(q, 9, 12, 0.012, Grid)
 
     if mode == True:
         CM[-1] = DNeg_CM(p, q, Par)
@@ -566,17 +566,18 @@ def rotation_qubits(ray, Nz, Ny):
 def sum_subd(A):
     # A 2D/1D matrix such that the lengt of sides have int squares
     Sh = A.shape
-    B = np.zeros(Sh)
     if len(Sh) > 1:
         Ny, Nz =  Sh
         Ny_s = int(np.sqrt(Ny))
         Nz_s = int(np.sqrt(Nz))
+        B = np.zeros((Ny_s, Nz_s))
         for i in range(Ny_s):
             for j in range(Nz_s):
                 B[i,j] = np.sum(A[Ny_s*i:Ny_s*(i+1), Nz_s*j:Nz_s*(j+1)])
     else:
         N = Sh
         N_s = int(np.sqrt(N))
+        B = np.zeros(N_s)
         for i in range(N_s):
             B[i] = np.sum(A[N_s*i:N_s*(i+1)])
     return B
