@@ -188,12 +188,25 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     CM = np.empty(tuple([N]+list(CM_0.shape)), dtype=np.float32)
     CM[0] = CM_0
     Grid = np.zeros((Nz, Ny), dtype=bool)
+    
+    Sh = tuple([3,6]+list(p[0].shape))
+    n = len(Sh)
+    P = np.zeros(Sh)
+    Q = np.zeros(Sh)
+    P[:,0] = p
+    Q[:,0] = q
+    r = np.empty(q[0].shape)
+    dr = np.empty(q[0].shape)
+    d2r = np.empty(q[0].shape)
+    S = np.arange(n)
+    S[0:2] = [1,0]
+    S = tuple(S)
+    h_vect = h**np.arange(6).reshape(tuple([6] + [1]*(n-1)))
 
     start = time.time()
-
     # Integration
     for i in tqdm(range(N-1)):
-        p, q , CM_i = integrator(p, q, Cst, h, Par)
+        p, q , CM_i = integrator(p, q, Cst, h_vect, Par, P, Q, r, dr, d2r, S)
         if mode == True:
             Motion[i+1] = [p, q]
             CM[i+1] =  CM_i
@@ -205,7 +218,6 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
         CM[-1] = DNeg_CM(p, q, Par)
     Motion[-1] = [p, q]
     end = time.time()
-
     print(end - start)
     return Motion, Grid, CM
 
@@ -295,7 +307,7 @@ def simulate_radius(t_end, Par, q0, h, Nz = 14**2, Ny = 14**2, methode = 'BDF', 
     return Motion[:, 3:], Motion[:, :3]
 
 
-def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np.pi, np.pi/2], Nz = 14**2, Ny = 14**2, methode = 'BDF'):
+def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np.pi, np.pi/2], Nz = 14**2, Ny = 14**2, methode = 'RK45'):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
@@ -367,7 +379,7 @@ def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np
     return np.array(endmom), np.array(endpos)
 
 
-def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'BDF'):
+def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, methode = 'RK45', mode = False):
     """
     Solves the differential equations using a build in solver (solve_ivp) with
     specified method.
@@ -377,6 +389,7 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
             - Nz: number of vertical pixels
             - Ny: number of horizontal pixels
             - methode: method used for solving the ivp (standerd runge-kutta of fourth order)
+            - mode enables data collection (Energy)
 
     Output: - Motion: Usual 5D matrix
     """
@@ -426,7 +439,13 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
         end_it = time.time()
         duration = end_it - start_it
         # print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
-    return np.transpose(np.array([endmom, endpos]), (4,0,3,1,2)) #output same shape as sympl. intgr.
+    Motion = np.transpose(np.array([endmom, endpos]), (4,0,3,1,2)) #output same shape as sympl. intgr.
+    if mode == False:
+        return Motion
+    else:
+        print("calculating constants of motion")
+        CM = np.array([DNeg_CM(Motion[k,0], Motion[k,1], Par) for k in range(len(Motion))])
+        return Motion , CM
 
 
 def rotate_ray(ray, Nz, Ny):
@@ -593,7 +612,7 @@ def DNeg_CM(p, q , Par):
 
 
 
-def wormhole_with_symmetry(t_end=100, q0 = [50, np.pi, np.pi/2], Nz=400, Ny=400, Par=[0.43/1.42953, 1, 0.43], h = 0.01, choice=True, mode=False):
+def wormhole_with_symmetry(t_end=200, q0 = [7.25, np.pi, np.pi/2], Nz=1024, Ny=2048, Par=[0.05/1.42953, 1, 1], h = 10**-10, choice=True, mode=False):
 
     """
     One function to calculate the ray and rotate it to a full picture with the
