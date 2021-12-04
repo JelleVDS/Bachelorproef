@@ -71,7 +71,7 @@ def screen_cart(Nz, Ny, L1 = 1, L2=2):
     for j in range(Nz):
         for i in range(Ny):
             # Placed at x = 1, (y,z) in My X Mz
-            arr.append([0.25, My[i],Mz[j]]) #(x, y, z)
+            arr.append([0.4, My[i],Mz[j]]) #(x, y, z)
 
     return np.array(arr).reshape(Nz, Ny, 3) #Flat array into matrix
 
@@ -225,8 +225,8 @@ def diff_equations(t, variables):
     cos1 = np.cos(theta)
     rec_sin2 = rec_sin1**2
     rec_sin3 = rec_sin1*rec_sin2
-    B = p_th**2 + p_phi**2 * rec_sin2
-    b = p_phi
+    # B = p_th**2 + p_phi**2 * rec_sin2
+    # b = p_phi
 
     # Using the hamiltonian equations of motion
     dl_dt       = p_l
@@ -278,14 +278,20 @@ def simulate_radius(t_end, Par, q0, h, Nz = 14**2, Ny = 14**2, methode = 'BDF', 
     teller1 = int(len(p1)/2) - 1
     #Loop over half of the screen
     print('Integrating ray...')
+    nstep = []
     for teller2 in tqdm(range(int(len(p1[0])/2 - 1), len(p1[0]))):
         initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a, Cst[0,teller1,teller2], Cst[1,teller1,teller2]])
         # Integrate to the solution
         i = teller2 - int(len(p1[0])/2 - 1)
-        Motion[i] = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=data, rtol=h**(1/2), atol=h).y[:6]
+        sol = integr.solve_ivp(diff_equations, [0, -t_end], initial_values, method = methode, t_eval=data, rtol=h**(1/2), atol=h)
+        Motion[i] = sol.y[:6]
+        nstep.append(sol.nfev)
+    print(np.amax(Motion[:,1]))
     Motion[:,1] = np.mod(Motion[:,1], 2*np.pi)
     Motion[:,2] = np.mod(Motion[:,2], np.pi)
+    avstep = sum(nstep)/len(nstep)
     print('radius saved!')
+    print(f'Average number of steps is: {avstep}.')
     return Motion[:, 3:], Motion[:, :3]
 
 
