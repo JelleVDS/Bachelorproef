@@ -161,13 +161,18 @@ def plot_CM(CM, Label, name, path):
             for i in range(N):
                 ax[k].plot(x, CM[k,:,i], color=cl[i])        
         ax[k].set_yscale("symlog")
-        #ax[k].set_title(Label[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
-        ax[k].set_xlabel("number of timesteps taken")
+        # ax[k].set_title(Label[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
+        
         ax[k].set_ylabel(Label[k])
+        if k == 1:
+            ax[k].set_xlabel("\npercentage of path finished [%]")
+        else:
+            ax[k].set_xlabel("percentage of path finished [%]")
         ax[k].set_title("sum subdivision rays")
     plt.tight_layout()
     plt.savefig(os.path.join(path, name), dpi=150)
     plt.show()
+    plt.savefig('Constants.png')
 
 
 def ray_spread(Nz, Ny):

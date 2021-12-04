@@ -237,8 +237,8 @@ def diff_equations(t, variables):
     cos1 = np.cos(theta)
     rec_sin2 = rec_sin1**2
     rec_sin3 = rec_sin1*rec_sin2
-    # B = p_th**2 + p_phi**2 * rec_sin2
-    # b = p_phi
+    B = p_th**2 + p_phi**2 * rec_sin2
+    b = p_phi
 
     # Using the hamiltonian equations of motion
     dl_dt       = p_l
@@ -418,7 +418,7 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
             start_it = time.time()
             initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a, Cst[0,teller1,teller2], Cst[1,teller1,teller2]])
             # Integrates to the solution
-            sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=np.linspace(t_end, 0, N))
+            sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=np.flip(np.arange(0, t_end, t_end/N)))
             #Reads out the data from the solution
             l_end       = sol.y[0]
             phi_end     = sol.y[1]
