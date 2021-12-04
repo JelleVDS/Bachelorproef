@@ -70,8 +70,8 @@ def make_picture(photo, gargantua, saturn):
         for kolom in range(0, Ny):
             element = photo[rij][kolom]
             l, phi, theta = element
-            loctheta = determine_theta(Nz, theta)
-            locphi = determine_phi(Ny, phi)
+            loctheta = determine_theta(len(saturn), theta)
+            locphi = determine_phi(len(saturn[0]), phi)
             if l < 0:
                 pic[rij][kolom] = gargantua[loctheta][locphi]
             else:

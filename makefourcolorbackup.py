@@ -12,21 +12,21 @@ def make4color(height=1024, width=2048):
         for column in range(width):
             loch = row + height/2
             locp = column
-            if row <= height/2 and row%(height/64) > 0:
-                if column < width/2 and column%(height/64)>0:
-                    pic[row][column] = np.array([255, 0, 0])
-                if column >= width/2 and column%(height/64)>0:
-                    pic[row][column] = np.array([123, 123, 0])
-            if row > height/2 and row%(height/64) > 0:
+            if row <= height/2 and row%(height/16) > 4:
+                if column < width/2 and column%(height/16)>4:
+                    pic[row][column] = np.array([0, 255, 255])
+                if column >= width/2 and column%(height/16)>4:
+                    pic[row][column] = np.array([123, 123, 255])
+            if row > height/2 and row%(height/16) > 4:
                 locp = column + width/2
-                if column < width/2 and column%(height/64)>0:
-                    pic[row][column] = np.array([0, 255, 0])
-                if column >= width/2 and column%(height/64)>0:
-                    pic[row][column] = np.array([0, 0, 255])
+                if column < width/2 and column%(height/16)>4:
+                    pic[row][column] = np.array([255, 0, 255])
+                if column >= width/2 and column%(height/16)>4:
+                    pic[row][column] = np.array([255, 255, 0])
     return np.array(pic)
 
 pict = make4color()
 print(pict.shape)
 img = cv2.cvtColor(np.array(pict, np.float32), 1)
 path = os.getcwd()
-cv2.imwrite(os.path.join(path, 'fourfull.png'), img)
+cv2.imwrite(os.path.join(path, 'negfourfull16thick.png'), img)
