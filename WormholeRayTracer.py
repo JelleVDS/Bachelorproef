@@ -71,7 +71,7 @@ def screen_cart(Nz, Ny, L1 = 1, L2=2):
     for j in range(Nz):
         for i in range(Ny):
             # Placed at x = 1, (y,z) in My X Mz
-            arr.append([0.25, My[i],Mz[j]]) #(x, y, z)
+            arr.append([0.4, My[i],Mz[j]]) #(x, y, z)
 
     return np.array(arr).reshape(Nz, Ny, 3) #Flat array into matrix
 
@@ -188,12 +188,25 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     CM = np.empty(tuple([N]+list(CM_0.shape)), dtype=np.float32)
     CM[0] = CM_0
     Grid = np.zeros((Nz, Ny), dtype=bool)
+    
+    Sh = tuple([3,6]+list(p[0].shape))
+    n = len(Sh)
+    P = np.zeros(Sh)
+    Q = np.zeros(Sh)
+    P[:,0] = p
+    Q[:,0] = q
+    r = np.empty(q[0].shape)
+    dr = np.empty(q[0].shape)
+    d2r = np.empty(q[0].shape)
+    S = np.arange(n)
+    S[0:2] = [1,0]
+    S = tuple(S)
+    h_vect = h**np.arange(6).reshape(tuple([6] + [1]*(n-1)))
 
     start = time.time()
-
     # Integration
     for i in tqdm(range(N-1)):
-        p, q , CM_i = integrator(p, q, Cst, h, Par)
+        p, q , CM_i = integrator(p, q, Cst, h_vect, Par, P, Q, r, dr, d2r, S)
         if mode == True:
             Motion[i+1] = [p, q]
             CM[i+1] =  CM_i
@@ -205,7 +218,6 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
         CM[-1] = DNeg_CM(p, q, Par)
     Motion[-1] = [p, q]
     end = time.time()
-
     print(end - start)
     return Motion, Grid, CM
 
