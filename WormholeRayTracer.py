@@ -71,7 +71,7 @@ def screen_cart(Nz, Ny, L1 = 1, L2=2):
     for j in range(Nz):
         for i in range(Ny):
             # Placed at x = 1, (y,z) in My X Mz
-            arr.append([0.4, My[i],Mz[j]]) #(x, y, z)
+            arr.append([4, My[i],Mz[j]]) #(x, y, z)
 
     return np.array(arr).reshape(Nz, Ny, 3) #Flat array into matrix
 
@@ -136,7 +136,7 @@ def Cst_DNeg(p, q):
     return Cst
 
 
-def inn_mom_DNeg(S_n, S_sph, Par):
+def inn_mom_DNeg(S_n, q, Par):
     # input: S_c: 3D matrix as earlier defined the in output of "screen_cart", from which
     #             we can calculate S_n
     #        S_sph: 3D matrix with Sph. coord. on first row and then a 2D matrix
@@ -144,7 +144,7 @@ def inn_mom_DNeg(S_n, S_sph, Par):
     # output: 3D matrix with coordinates in impulse space on first row and then
     #         a 2D matrix within that with the value for each ray
 
-    l, phi, theta = S_sph
+    l, phi, theta = q
     M, rho, a = Par
 
     # defining r(l)
@@ -181,10 +181,15 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     Sh = S_cT[0].shape 
     q = np.transpose(np.tile(q0, tuple(list(Sh) + [1])), tuple(np.roll(np.arange(len(Sh)+1), 1))) + h*0.001
     p, Cst = inn_momenta(S_c, q, Cst_DNeg, inn_mom_DNeg, Par)
-    Motion = np.empty(tuple([N,2,3] + list(Sh)), dtype=np.float32)
+    if N <= 1000:
+        M = N
+    else:
+        M = 1000
+        
+    Motion = np.empty(tuple([M,2,3] + list(Sh)), dtype=np.float32)
     Motion[0] = [p, q]
     CM_0 = np.array(DNeg_CM(p, q , Par))
-    CM = np.empty(tuple([N]+list(CM_0.shape)), dtype=np.float32)
+    CM = np.empty(tuple([M]+list(CM_0.shape)), dtype=np.float32)
     CM[0] = CM_0
     Grid = np.zeros((Nz, Ny), dtype=bool)
     
@@ -205,11 +210,18 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     start = time.time()
     Time = np.empty(N-1)
     # Integration
+    m = 0
     for i in tqdm(range(N-1)):
         p, q , CM_i, Time[i] = integrator(p, q, Cst, h_vect, Par, P, Q, r, dr, d2r, S)
         if mode == True:
-            Motion[i+1] = [p, q]
-            CM[i+1] =  CM_i
+            if N<= 1000:
+                Motion[i+1] = [p, q]
+                CM[i+1] =  CM_i
+            else:
+                if np.mod(i+1, N/1000) == 0:
+                    m += 1
+                    Motion[m] = [p, q]
+                    CM[m] =  CM_i
         if Gr_D == '3D':
             # change parameters grid here
             Grid = Grid_constr_3D(q, 9, 12, 0.012, Grid)
@@ -281,7 +293,7 @@ def simulate_radius(t_end, Par, q0, h, Nz = 14**2, Ny = 14**2, methode = 'BDF', 
     p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
     p1, p2, p3 = p
     if mode == True:
-        T = int(t_end/np.sqrt(h))
+        T = 1000
         data = np.linspace(0, -t_end, T)
     else:
         T = 1
