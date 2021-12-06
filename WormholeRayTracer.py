@@ -177,11 +177,10 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
         S_c = screen_cart(end, end)
         S_c = S_c[ int(end/2) - 1, int(end/2 - 1):end, :]
         S_cT = S_c.T
-
-    S_sph = cart_Sph(S_cT)
-    p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
-    Sh = S_cT[0].shape
-    q = np.transpose(np.tile(q0, tuple(list(Sh) + [1])), tuple(np.roll(np.arange(len(Sh)+1), 1))) + h*0.1
+        
+    Sh = S_cT[0].shape 
+    q = np.transpose(np.tile(q0, tuple(list(Sh) + [1])), tuple(np.roll(np.arange(len(Sh)+1), 1))) + h*0.001
+    p, Cst = inn_momenta(S_c, q, Cst_DNeg, inn_mom_DNeg, Par)
     Motion = np.empty(tuple([N,2,3] + list(Sh)), dtype=np.float32)
     Motion[0] = [p, q]
     CM_0 = np.array(DNeg_CM(p, q , Par))
@@ -204,9 +203,10 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     h_vect = h**np.arange(6).reshape(tuple([6] + [1]*(n-1)))
 
     start = time.time()
+    Time = np.empty(N-1)
     # Integration
     for i in tqdm(range(N-1)):
-        p, q , CM_i = integrator(p, q, Cst, h_vect, Par, P, Q, r, dr, d2r, S)
+        p, q , CM_i, Time[i] = integrator(p, q, Cst, h_vect, Par, P, Q, r, dr, d2r, S)
         if mode == True:
             Motion[i+1] = [p, q]
             CM[i+1] =  CM_i
@@ -219,6 +219,7 @@ def Simulate_DNeg(integrator, Par, h, N, q0, Nz = 14**2, Ny = 14**2, Gr_D = '2D'
     Motion[-1] = [p, q]
     end = time.time()
     print(end - start)
+    print("Time spent:" + str(np.sum(Time)))
     return Motion, Grid, CM
 
 
@@ -408,17 +409,20 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
     endpos = []
     endmom = []
 
+    Time = np.empty(p1.shape)
     # Looping over all momenta
     for teller1 in tqdm(range(0, len(p1))):
         row_pos = []
         row_mom = []
         start_it = time.time()
         for teller2 in range(0, len(p1[0])):
-
-            start_it = time.time()
+  
             initial_values = np.array([q1, q2, q3, p1[teller1][teller2], p2[teller1][teller2], p3[teller1][teller2], M, rho, a, Cst[0,teller1,teller2], Cst[1,teller1,teller2]])
             # Integrates to the solution
+            start_it = time.time()
             sol = integr.solve_ivp(diff_equations, [t_end, 0], initial_values, method = methode, t_eval=np.flip(np.arange(0, t_end, t_end/N)))
+            end_it = time.time()
+            Time[teller1,teller2] = end_it - start_it
             #Reads out the data from the solution
             l_end       = sol.y[0]
             phi_end     = sol.y[1]
@@ -436,9 +440,9 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
         # adds row to matrix
         endpos.append(np.array(row_pos))
         endmom.append(np.array(row_mom))
-        end_it = time.time()
-        duration = end_it - start_it
+        
         # print('Iteration ' + str((teller1, teller2)) + ' completed in ' + str(duration) + 's.')
+    print("Time spent:" + str(np.sum(Time)))
     Motion = np.transpose(np.array([endmom, endpos]), (4,0,3,1,2)) #output same shape as sympl. intgr.
     if mode == False:
         return Motion
@@ -605,9 +609,9 @@ def DNeg_CM(p, q , Par):
     H2 = p_th**2*rec_r_2
     H3 = p_phi**2/sin2*rec_r_2
 
-    H = 0.5*sum_subd((H1 + H2 + H3))
-    B2_C = sum_subd(p_th**2 + p_phi**2/sin2)
-    b_C = sum_subd(p_phi)
+    H = 0.5*(H1 + H2 + H3)
+    B2_C = p_th**2 + p_phi**2/sin2
+    b_C = p_phi
 
     return [H, b_C, B2_C]
 

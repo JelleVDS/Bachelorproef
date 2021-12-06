@@ -287,6 +287,7 @@ def fullplothalf(ax, q_cart, l_cond, cl, ind, L):
     ax.set_xlim([-L,L])
     ax.set_ylim([-L,L])
     ax.set_zlim([-L,L])
+    ax.axis("off")
 
 def fullplot(q, a):
     q = np.transpose(q, (1,0,2,3))

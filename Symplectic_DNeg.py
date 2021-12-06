@@ -1,5 +1,6 @@
 import numpy as np
 from numba import njit
+import time
 
 def sum_subd(A):
     # A 2D/1D matrix such that the lengt of sides have int squares
@@ -112,6 +113,7 @@ def Sympl_DNeg(p, q, Cst, h_vect, Par, P, Q, r, dr, d2r, S):
     # Cst: list of cst of motion containing the value for each ray in 2D matrix,
     # h: stepsize, M: scalar, rho: scalar, output: list of coordinates in
     # configuration space containing 2D matrix with value for each ray
+    start = time.time()
     M, rho, a = Par
     
     l = q[0]
@@ -125,5 +127,6 @@ def Sympl_DNeg(p, q, Cst, h_vect, Par, P, Q, r, dr, d2r, S):
     d2r[inv_l_con] = 0
     
     P, Q, b, B_2, H = Sympl_calc(P, Q, p, q, l, r, dr, d2r, Cst, h_vect, S)
-    return (P, Q, [sum_subd(H), sum_subd(b), sum_subd(B_2)]) 
+    end = time.time()
+    return (P, Q, [H, b, B_2], end-start) 
     
