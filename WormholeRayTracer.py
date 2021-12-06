@@ -286,11 +286,11 @@ def simulate_radius(t_end, Par, q0, h, Nz = 14**2, Ny = 14**2, methode = 'BDF', 
     M, rho, a = Par
     q1, q2, q3 = q0
     end = int(np.ceil(np.sqrt(Ny**2+Nz**2)))
-    S_c = screen_cart(end, end)
-    S_cT = np.transpose(S_c, (2,0,1))
-    S_sph = cart_Sph(S_cT)
-
-    p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
+    S_c = screen_cart(end, end) 
+    S_cT = S_c.T
+    Sh = S_cT[0].shape 
+    q_v = np.transpose(np.tile(q0, tuple(list(Sh) + [1])), tuple(np.roll(np.arange(len(Sh)+1), 1))) + h*0.001
+    p, Cst = inn_momenta(S_c, q_v, Cst_DNeg, inn_mom_DNeg, Par)
     p1, p2, p3 = p
     if mode == True:
         T = 1000
@@ -342,8 +342,9 @@ def simulate_raytracer(tijd = 100, Par = [0.43/1.42953, 1, 0.48], q0 = [6.68, np
     # Reading out values and determining parameters
     S_c = screen_cart(Nz, Ny)
     S_cT = np.transpose(S_c, (2,0,1))
-    S_sph = cart_Sph(S_cT)
-    p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
+    Sh = S_cT[0].shape 
+    q_v = np.transpose(np.tile(q0, tuple(list(Sh) + [1])), tuple(np.roll(np.arange(len(Sh)+1), 1))) + 0.00001
+    p, Cst = inn_momenta(S_c, q_v, Cst_DNeg, inn_mom_DNeg, Par)
     p1, p2, p3 = p
     q1, q2, q3 = q0
     endpos = []
@@ -414,8 +415,9 @@ def simulate_raytracer_fullpath(t_end, Par, q0, N, Nz = 14**2, Ny = 14**2, metho
     # Reading out values and determining parameters
     S_c = screen_cart(Nz, Ny, 1, 1)
     S_cT = np.transpose(S_c, (2,0,1))
-    S_sph = cart_Sph(S_cT)
-    p, Cst = inn_momenta(S_c, S_sph, Cst_DNeg, inn_mom_DNeg, Par)
+    Sh = S_cT[0].shape 
+    q_v = np.transpose(np.tile(q0, tuple(list(Sh) + [1])), tuple(np.roll(np.arange(len(Sh)+1), 1))) + 0.00001
+    p, Cst = inn_momenta(S_c, q_v, Cst_DNeg, inn_mom_DNeg, Par)
     p1, p2, p3 = p
     q1, q2, q3 = q0
     endpos = []
