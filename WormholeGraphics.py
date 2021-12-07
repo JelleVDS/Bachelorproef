@@ -1,6 +1,7 @@
 import WormholeRayTracer as w
 import cv2
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import numpy as np
 import InbeddingDiagramDNeg as Dia
 import os
@@ -136,39 +137,66 @@ def Make_Pict_RGBP(q, Grid):
 
 def plot_CM(CM, Label, name, path):
     #input: 3D array containing energy of each ray over time, advancement in time on first row
+    #       Label: list of labels of constants
+    #       name: picture/filename
+    #       path: directory
     # plot the constants of motion over the partition of the rays
   
-    Sh = CM[0,0].shape
+    if len(Label) > 1:
+        Sh = CM[0,0].shape
+    else:
+        Sh = CM[0].shape 
     if len(Sh) > 1:
         Ny, Nz = Sh
         cl, ind = ray_spread(Nz, Ny)
-        CM = np.transpose(CM, (1,0,2,3))
+        if len(Label) > 1:
+            CM = np.transpose(CM, (1,0,2,3))
     else:
         N = Sh[0]
         cl = plt.cm.viridis(np.arange(N)/N)
-        CM = np.transpose(CM, (1,0,2))
-    N_C = len(CM)
-    fig, ax = plt.subplots(1, N_C)
-    x = np.arange(len(CM[0]))
-    for k in range(N_C):
+        if len(Label) > 1:
+            CM = np.transpose(CM, (1,0,2))
+    if len(Label) > 1:
+        N_C = len(CM)
+        fig, ax = plt.subplots(1, N_C)
+        x = np.arange(len(CM[0]))
+        for k in range(N_C):
+            if len(Sh) > 1:
+                for i in range(Nz):
+                    for j in range(Ny):
+                        ij = i + Nz*j
+                        cl_i =cl[ind[ij]]
+                        ax[k].plot(x, CM[k,:,i,j], color=cl_i)
+            else:
+                for i in range(N):
+                        x[k].plot(x, CM[k,:,i], color=cl[i])        
+            ax[k].set_yscale("symlog")
+            # ax[k].set_title(Label[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
+                
+            ax[k].set_ylabel(Label[k])
+            if k == 1:
+                ax[k].set_xlabel("\npercentage of path finished [%]")
+            else:
+                ax[k].set_xlabel("percentage of path finished [%]")
+            ax[k].set_title("sum subdivision rays")
+    else:
+        fig, ax = plt.subplots()
         if len(Sh) > 1:
             for i in range(Nz):
                 for j in range(Ny):
                     ij = i + Nz*j
                     cl_i =cl[ind[ij]]
-                    ax[k].plot(x, CM[k,:,i,j], color=cl_i)
+                    ax[k].plot(x, CM[:,i,j], color=cl_i)
         else:
             for i in range(N):
-                ax[k].plot(x, CM[k,:,i], color=cl[i])        
-        ax[k].set_yscale("symlog")
-        # ax[k].set_title(Label[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
-        
-        ax[k].set_ylabel(Label[k])
-        if k == 1:
-            ax[k].set_xlabel("\npercentage of path finished [%]")
-        else:
-            ax[k].set_xlabel("percentage of path finished [%]")
-        ax[k].set_title("sum subdivision rays")
+                ax.plot(x, CM[:,i], color=cl[i])        
+            ax.set_yscale("symlog")
+            # ax[k].set_title(Label[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
+                
+            ax.set_ylabel(Label[k])
+            ax.set_xlabel("percentage of path finished [%]")
+            ax.set_title("sum subdivision rays")
+            
     plt.tight_layout()
     plt.savefig(os.path.join(path, name), dpi=150)
     plt.show()
@@ -319,3 +347,73 @@ def fullplot(q, a):
     plt.tight_layout()
     plt.show()   
     
+    
+def density_states_plot(pq_final, Par, H_max, n_bins, path, name):
+    # input: pq_final: final position in phase space, pixels indices on last rows
+    #       Par: parameters wormhole
+    #       H_max: cut_off point
+    #       n_bins: amount of bins
+    #       name: picture/filename
+    #       path: directory
+    # output: Density states plot
+    
+    p, q = pq_final.astype(np.float64)
+    M, rho, a = Par
+
+    p_l, p_phi, p_th = p
+    l, phi, theta = q
+
+    # defining r(l):
+    r = w.dneg_r(l, M, rho, a)
+
+    rec_r = 1/r
+    rec_r_2 = rec_r**2
+    sin1 = np.sin(theta)
+    sin2 = sin1**2
+    rec_sin2 = 1/sin2
+
+    # defining hamiltonian
+    H1 = p_l**2
+    H2 = p_th**2*rec_r_2
+    H3 = p_phi**2*rec_sin2*rec_r_2
+
+    H = 0.5*(H1 + H2 + H3).flatten()
+    K = len(H)
+    M = K - len(H[H>H_max])
+    H = H[H<H_max]
+
+    fig, ax = plt.subplots(tight_layout=True)
+    
+    logbins = np.geomspace(H.min(), H.max(), n_bins)
+    N, bins, patches = ax.hist(H, bins=logbins)
+    
+    # We'll color code by height, but you could use any scalar
+    fracs = N / N.max()
+    
+    # we need to normalize the data to 0..1 for the full range of the colormap
+    norm = mcolors.Normalize(fracs.min(), fracs.max())
+    
+    # Now, we'll loop through our objects and set the color of each accordingly
+    for thisfrac, thispatch in zip(fracs, patches):
+        color = plt.cm.viridis(norm(thisfrac))
+        thispatch.set_facecolor(color)
+    
+    ax.set_xscale("symlog")
+    y_sc = ax.get_yticks()
+    ax.set_yticklabels(y_sc/K)
+    ax.set_ylabel('occupation level [%]')
+    ax.set_xlabel('$H$[$m^{2}$]')
+    plt.savefig(os.path.join(path, name), dpi=150)
+    print(str(M)+ " out of "+ str(K) + " values shown")
+    plt.show()
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        

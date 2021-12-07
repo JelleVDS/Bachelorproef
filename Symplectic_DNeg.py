@@ -128,5 +128,5 @@ def Sympl_DNeg(p, q, Cst, h_vect, Par, P, Q, r, dr, d2r, S):
     
     P, Q, b, B_2, H = Sympl_calc(P, Q, p, q, l, r, dr, d2r, Cst, h_vect, S)
     end = time.time()
-    return (P, Q, [H, b, B_2], end-start) 
+    return (P, Q, [sum_subd(H), sum_subd(b), sum_subd(B_2)], end-start) 
     

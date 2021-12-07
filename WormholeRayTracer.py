@@ -71,7 +71,7 @@ def screen_cart(Nz, Ny, L1 = 1, L2=2):
     for j in range(Nz):
         for i in range(Ny):
             # Placed at x = 1, (y,z) in My X Mz
-            arr.append([3.7, My[i],Mz[j]]) #(x, y, z)
+            arr.append([3.3, My[i],Mz[j]]) #(x, y, z)
 
     return np.array(arr).reshape(Nz, Ny, 3) #Flat array into matrix
 
@@ -617,15 +617,16 @@ def DNeg_CM(p, q , Par):
     rec_r_2 = rec_r**2
     sin1 = np.sin(theta)
     sin2 = sin1**2
+    rec_sin2 = 1/sin2
 
     # defining hamiltonian
     H1 = p_l**2
     H2 = p_th**2*rec_r_2
-    H3 = p_phi**2/sin2*rec_r_2
+    H3 = p_phi**2*rec_sin2*rec_r_2
 
-    H = 0.5*(H1 + H2 + H3)
-    B2_C = p_th**2 + p_phi**2/sin2
-    b_C = p_phi
+    H = 0.5*sum_subd(H1 + H2 + H3)
+    B2_C = sum_subd(p_th**2 + p_phi**2*rec_sin2)
+    b_C = sum_subd(p_phi)
 
     return [H, b_C, B2_C]
 
