@@ -141,7 +141,8 @@ def plot_CM(CM, Label, name, path):
     #       name: picture/filename
     #       path: directory
     # plot the constants of motion over the partition of the rays
-  
+    
+    x = np.arange(len(CM))
     if len(Label) > 1:
         Sh = CM[0,0].shape
     else:
@@ -159,7 +160,6 @@ def plot_CM(CM, Label, name, path):
     if len(Label) > 1:
         N_C = len(CM)
         fig, ax = plt.subplots(1, N_C)
-        x = np.arange(len(CM[0]))
         for k in range(N_C):
             if len(Sh) > 1:
                 for i in range(Nz):
@@ -186,16 +186,16 @@ def plot_CM(CM, Label, name, path):
                 for j in range(Ny):
                     ij = i + Nz*j
                     cl_i =cl[ind[ij]]
-                    ax[k].plot(x, CM[:,i,j], color=cl_i)
+                    ax.plot(x, CM[:,i,j], color=cl_i)
         else:
             for i in range(N):
                 ax.plot(x, CM[:,i], color=cl[i])        
-            ax.set_yscale("symlog")
-            # ax[k].set_title(Label[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
+        ax.set_yscale("symlog")
+        # ax[k].set_title(Label[k] + ",  Donker pixels binnenkant scherm, lichte pixels buitenkant")
                 
-            ax.set_ylabel(Label[k])
-            ax.set_xlabel("percentage of path finished [%]")
-            ax.set_title("sum subdivision rays")
+        ax.set_ylabel(Label[0])
+        ax.set_xlabel("percentage of path finished [%]")
+        ax.set_title("sum subdivision rays")
             
     plt.tight_layout()
     plt.savefig(os.path.join(path, name), dpi=150)
@@ -400,7 +400,7 @@ def density_states_plot(pq_final, Par, H_max, n_bins, path, name):
     
     ax.set_xscale("symlog")
     y_sc = ax.get_yticks()
-    ax.set_yticklabels(y_sc/K)
+    ax.set_yticklabels(y_sc/K*100)
     ax.set_ylabel('occupation level [%]')
     ax.set_xlabel('$H$[$m^{2}$]')
     plt.savefig(os.path.join(path, name), dpi=150)
